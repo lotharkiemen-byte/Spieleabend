@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Spieleabend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{ --bg:#14302a; --bg2:#1c3f37; --bg3:#234a40; --chalk:#f3ead9; --chalk-dim:#b9c9c1; --yellow:#f4c14b; --red:#e2574c; --blue:#5aa9c4; --line: rgba(243,234,217,0.18); }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{ background: radial-gradient(circle at 15% 8%, rgba(255,255,255,0.05), transparent 40%), radial-gradient(circle at 85% 90%, rgba(255,255,255,0.04), transparent 45%), var(--bg); color:var(--chalk); font-family:'Inter',sans-serif; min-height:100%; display:flex; flex-direction:column; align-items:center; }
+  #app{ width:100%; max-width:480px; padding:20px 16px 40px; min-height:100vh; }
+  h1,h2,h3{ font-family:'Kalam',cursive; font-weight:700; margin:0 0 4px; }
+  .title{ text-align:center; font-size:38px; color:var(--chalk); letter-spacing:0.5px; margin-top:6px; margin-bottom:2px; text-shadow: 0 0 18px rgba(244,193,75,0.15); }
+  .subtitle{ text-align:center; color:var(--chalk-dim); font-size:14px; margin-bottom:26px; }
+  .card{ background:var(--bg2); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:16px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  label{ display:block; font-size:13px; color:var(--chalk-dim); margin-bottom:6px; font-weight:600; }
+  input[type=text]{ width:100%; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:14px; color:var(--chalk); font-size:17px; font-family:'Inter',sans-serif; margin-bottom:14px; outline:none; }
+  input[type=text]:focus{ border-color: var(--yellow); }
+  input[type=text].code-input{ text-transform:uppercase; letter-spacing:6px; text-align:center; font-family:'Kalam',cursive; font-size:24px; }
+  button{ font-family:'Inter',sans-serif; font-weight:700; font-size:15px; border:none; border-radius:12px; padding:14px 18px; cursor:pointer; width:100%; margin-bottom:10px; transition: transform 0.08s ease, opacity .15s ease; }
+  button:active{ transform: scale(0.97); }
+  button.primary{ background:var(--yellow); color:#1c2420; }
+  button.secondary{ background:transparent; color:var(--chalk); border:1px solid var(--line); }
+  button.danger{ background:var(--red); color:#fff; }
+  button:disabled{ opacity:0.4; cursor:default; }
+  button.small{ width:auto; padding:8px 14px; font-size:13px; margin-bottom:0;}
+  .row{ display:flex; gap:10px; }
+  .row > *{ flex:1; }
+  .error{ color:var(--red); font-size:13px; margin:-6px 0 12px; font-weight:600; }
+  .code-display{ text-align:center; font-family:'Kalam',cursive; font-size:44px; letter-spacing:10px; color:var(--yellow); border-bottom: 3px dashed var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .hint{ text-align:center; color:var(--chalk-dim); font-size:13px; margin-bottom:20px;}
+  .players-list{ list-style:none; padding:0; margin:0 0 18px; }
+  .players-list li{ display:flex; align-items:center; justify-content:space-between; padding:10px 4px; border-bottom:1px solid var(--line); font-size:15px; }
+  .players-list li:last-child{ border-bottom:none; }
+  .host-tag{ font-size:11px; background:var(--yellow); color:#1c2420; padding:2px 8px; border-radius:8px; font-weight:800; }
+  .you-tag{ font-size:11px; color:var(--chalk-dim); }
+  .game-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+  .game-btn{ background:var(--bg3); border:1px solid var(--line); border-radius:16px; padding:18px 10px; text-align:center; cursor:pointer; color:var(--chalk); }
+  .game-btn .emoji{ font-size:30px; display:block; margin-bottom:6px; }
+  .game-btn.active{ border-color:var(--yellow); background: rgba(244,193,75,0.12); }
+  .pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .pick-chip{ padding:8px 14px; border-radius:20px; border:1px solid var(--line); background:var(--bg); font-size:14px; cursor:pointer; color:var(--chalk-dim); }
+  .pick-chip.selected{ background:var(--yellow); color:#1c2420; border-color:var(--yellow); font-weight:700;}
+  .status-bar{ text-align:center; font-size:16px; font-weight:700; margin-bottom:16px; background:var(--bg2); border-radius:12px; padding:12px; border:1px solid var(--line); }
+  .status-bar.win{ color:var(--yellow); }
+  .ttt-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:8px; max-width:300px; margin:0 auto 18px; }
+  .ttt-cell{ aspect-ratio:1; background:var(--bg); border-radius:12px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Kalam',cursive; font-size:44px; font-weight:700; cursor:pointer; }
+  .ttt-cell.x{ color:var(--red); }
+  .ttt-cell.o{ color:var(--blue); }
+  .c4-board{ background:var(--bg3); border-radius:14px; padding:8px; display:grid; grid-template-columns:repeat(7,1fr); gap:6px; max-width:420px; margin:0 auto 6px;}
+  .c4-col{ display:flex; flex-direction:column; gap:6px; cursor:pointer; }
+  .c4-cell{ aspect-ratio:1; border-radius:50%; background:var(--bg); }
+  .c4-cell.p0{ background:var(--red); }
+  .c4-cell.p1{ background:var(--yellow); }
+  .c4-collabel{ text-align:center; color:var(--chalk-dim); font-size:11px; margin-bottom:18px;}
+  .ship-boards{ display:flex; flex-direction:column; gap:22px; }
+  .ship-label{ font-size:13px; color:var(--chalk-dim); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  .ship-grid{ display:grid; grid-template-columns:repeat(8,1fr); gap:4px; max-width:340px; margin:0 auto; }
+  .ship-cell{ aspect-ratio:1; background:var(--bg); border-radius:5px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .ship-cell.own-ship{ background:var(--blue); }
+  .ship-cell.hit{ background:var(--red); color:#fff; }
+  .ship-cell.miss{ background:var(--bg3); }
+  .ship-cell.target{ cursor:pointer; }
+  .ship-cell.target:active{ opacity:0.7; }
+  .dice-row{ display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
+  .die{ width:52px; height:52px; background:var(--chalk); color:#1c2420; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; cursor:pointer; border:3px solid transparent; font-family:'Inter',sans-serif; }
+  .die.held{ border-color:var(--yellow); background:#fff8e8; }
+  .score-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  .score-table th, .score-table td{ padding:7px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  .score-table th{ color:var(--chalk-dim); font-weight:600; font-size:11px; }
+  .score-table td.catname{ text-align:left; color:var(--chalk-dim); }
+  .score-table td.cell{ cursor:pointer; color:var(--chalk-dim); }
+  .score-table td.cell.filled{ color:var(--chalk); font-weight:700; cursor:default; }
+  .score-table td.cell.suggest{ color:var(--yellow); font-weight:700; }
+  .score-table tr.me{ background: rgba(244,193,75,0.06); }
+  .foot-nav{ margin-top:22px; }
+  .center{ text-align:center; }
+  .small-note{ color:var(--chalk-dim); font-size:12px; text-align:center; margin-top:10px;}
+  .debug-box{ background:var(--red); color:#fff; padding:16px; border-radius:12px; margin-bottom:16px; font-size:14px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ==================== FIREBASE KONFIGURATION ====================
+// ERSETZE DIE FOLGENDEN 6 WERTE DURCH DEINE EIGENEN AUS DER FIREBASE CONSOLE:
+const firebaseConfig = {
+  apiKey: "DEIN_API_KEY",
+  authDomain: "spiele-0815.firebaseapp.com",
+  databaseURL: "https://spiele-0815-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "spiele-0815",
+  storageBucket: "spiele-0815.appspot.com",
+  messagingSenderId: "DEINE_MESSAGING_SENDER_ID",
+  appId: "DEINE_APP_ID"
+};
+// =================================================================
+
+const appDiv = document.getElementById('app');
+
+// Prüfe auf Platzhalter
+const hasPlaceholder = Object.values(firebaseConfig).some(v => String(v).includes('DEIN') || String(v).includes('DEINE'));
+if(hasPlaceholder){
+  appDiv.innerHTML = '<div class="card"><div class="debug-box">⚠️ Fehler: Die Firebase-Werte wurden noch nicht eingetragen!\n\nBitte ersetze im Code die Platzhalter wie \"DEIN_API_KEY\" durch deine echten Werte aus der Firebase Console.</div></div>';
+  throw new Error('Platzhalter noch vorhanden');
+}
+
+let db;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) {
+  appDiv.innerHTML = '<div class="card"><div class="debug-box">⚠️ Firebase-Fehler:\n' + e.message + '\n\nPrüfe, ob alle 6 Werte korrekt kopiert wurden.</div></div>';
+  throw e;
+}
+
+function uid(){ return 'p_' + Math.random().toString(36).slice(2,9); }
+function randCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+function roomRef(code){ return db.ref('rooms/' + code); }
+function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+// Firebase liefert Arrays manchmal als Objekte. Diese Funktion wandelt sie zurück.
+function ensureArray(v){
+  if(Array.isArray(v)) return v;
+  if(v && typeof v === 'object'){
+    const keys = Object.keys(v).filter(k => !isNaN(parseInt(k))).sort((a,b)=>parseInt(a)-parseInt(b));
+    if(keys.length) return keys.map(k => v[k]);
+  }
+  return [];
+}
+
+function normalizeRoom(raw){
+  if(!raw) return null;
+  const r = {...raw};
+  r.players = ensureArray(r.players);
+  r.activePlayers = ensureArray(r.activePlayers);
+  if(r.state){
+    if(r.state.board && !Array.isArray(r.state.board) && r.state.board['0']){
+      // c4 board als Objekt
+      const rows = [];
+      for(let i=0;i<6;i++) rows.push(ensureArray(r.state.board[i]));
+      r.state.board = rows;
+    }
+    if(r.state.boards){
+      const boards = {};
+      for(const k of Object.keys(r.state.boards)){
+        const b = r.state.boards[k];
+        boards[k] = {
+          ships: ensureArray(b.ships),
+          shots: ensureArray(b.shots)
+        };
+      }
+      r.state.boards = boards;
+    }
+    if(r.state.scores){
+      const scores = {};
+      for(const k of Object.keys(r.state.scores)){
+        scores[k] = r.state.scores[k] || {};
+      }
+      r.state.scores = scores;
+    }
+    if(r.state.order) r.state.order = ensureArray(r.state.order);
+    if(r.state.dice) r.state.dice = ensureArray(r.state.dice);
+    if(r.state.held) r.state.held = ensureArray(r.state.held);
+  }
+  return r;
+}
+
+const myId = uid();
+let myName = '';
+let local = { screen:'landing', code:'', error:'', joinCodeInput:'', nameInput:'', pickA:null, pickB:null};
+let room = null;
+let roomListener = null;
+
+function startListening(code){
+  stopListening();
+  roomListener = roomRef(code).on('value', snap => {
+    const val = snap.val();
+    if(val){
+      room = normalizeRoom(val);
+      if(local.screen==='lobby' || local.screen==='game'){
+        goToGameScreenIfActive();
+        render();
+      }
+    }
+  }, err => {
+    console.error('Firebase Listener Fehler:', err);
+    local.error = 'Verbindungsfehler: ' + err.message;
+    render();
+  });
+}
+function stopListening(){ if(roomListener){ roomRef(local.code).off('value', roomListener); roomListener=null; } }
+
+async function loadRoom(code){
+  try {
+    const snap = await roomRef(code).once('value');
+    return normalizeRoom(snap.val());
+  } catch(e) {
+    console.error('loadRoom Fehler:', e);
+    local.error = 'Datenbank-Fehler: ' + e.message;
+    render();
+    return null;
+  }
+}
+async function saveRoom(r){
+  r.updatedAt = Date.now();
+  try {
+    await roomRef(r.code).set(r);
+    return true;
+  } catch(e) {
+    console.error('saveRoom Fehler:', e);
+    local.error = 'Speichern fehlgeschlagen: ' + e.message;
+    render();
+    return false;
+  }
+}
+
+async function createRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  myName = name;
+  let code, existing;
+  for(let i=0;i<8;i++){
+    code = randCode();
+    existing = await loadRoom(code);
+    if(!existing) break;
+  }
+  const newRoom = {
+    code, hostId: myId,
+    players: [{id:myId, name:myName}],
+    game:null, activePlayers:[], state:null,
+    createdAt: Date.now()
+  };
+  const ok = await saveRoom(newRoom);
+  if(!ok) return;
+  room = newRoom; local.code = code; local.screen='lobby';
+  startListening(code); render();
+}
+
+async function joinRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  const code = local.joinCodeInput.trim().toUpperCase();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  if(!code || code.length<4){ local.error='Bitte gib einen gültigen Raumcode ein.'; render(); return; }
+  myName = name;
+  const r = await loadRoom(code);
+  if(!r){ local.error='Diesen Raum gibt es nicht.'; render(); return; }
+  if(r.players.length>=10 && !r.players.find(p=>p.id===myId)){ local.error='Der Raum ist voll (max. 10 Teilnehmer).'; render(); return; }
+  if(!r.players.find(p=>p.id===myId)){
+    r.players.push({id:myId, name:myName});
+    const ok =
