@@ -98,7 +98,7 @@ function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;',
 
 async function loadRoom(code){
   try{
-    const res = await fetch(`${DB_URL}/rooms/${code}.json`);
+    const res = await fetch(`${DB_URL}/rooms/${code}.json?_ts=${Date.now()}`, { cache: 'no-store' });
     if(!res.ok) return null;
     const data = await res.json();
     return data || null;
@@ -109,6 +109,7 @@ async function saveRoom(room){
   try{
     const res = await fetch(`${DB_URL}/rooms/${room.code}.json`, {
       method:'PUT',
+      cache:'no-store',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(room)
     });
@@ -253,6 +254,7 @@ function tttWinner(board){
 }
 async function tttClick(i){
   const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
   const s = r.state;
   if(s.winner) return;
   if(r.activePlayers[s.turn]!==myId) return;
@@ -282,6 +284,7 @@ function c4Winner(board){
 }
 async function c4Click(col){
   const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
   const s = r.state;
   if(s.winner) return;
   if(r.activePlayers[s.turn]!==myId) return;
@@ -320,6 +323,7 @@ function shipCellHit(ships, r, c){ return ships.some(([sr,sc])=>sr===r&&sc===c);
 function allShipsSunk(ships, shots){ return ships.every(([sr,sc]) => shots.some(s=>s.r===sr && s.c===sc && s.hit)); }
 async function shipClick(targetPid, r, c){
   const rm = await refreshRoom();
+  if(!rm || !rm.state) { render(); return; }
   const s = rm.state;
   if(s.winner) return;
   if(s.turn!==myId) return;
@@ -366,6 +370,7 @@ function kTotal(scores){
 }
 async function kniffelRoll(){
   const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
   const s = r.state;
   if(s.finished) return;
   if(s.order[s.turn]!==myId) return;
@@ -376,6 +381,7 @@ async function kniffelRoll(){
 }
 async function kniffelHold(i){
   const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
   const s = r.state;
   if(s.order[s.turn]!==myId) return;
   if(!s.rolledOnce) return;
@@ -384,6 +390,7 @@ async function kniffelHold(i){
 }
 async function kniffelScore(cat){
   const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
   const s = r.state;
   if(s.finished) return;
   if(s.order[s.turn]!==myId) return;
