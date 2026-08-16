@@ -7,22 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#14302a; --bg2:#1c3f37; --bg3:#234a40;
-    --chalk:#f3ead9; --chalk-dim:#b9c9c1;
-    --yellow:#f4c14b; --red:#e2574c; --blue:#5aa9c4;
-    --line: rgba(243,234,217,0.18);
-  }
+  :root{ --bg:#14302a; --bg2:#1c3f37; --bg3:#234a40; --chalk:#f3ead9; --chalk-dim:#b9c9c1; --yellow:#f4c14b; --red:#e2574c; --blue:#5aa9c4; --line: rgba(243,234,217,0.18); }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; height:100%;}
-  body{
-    background:
-      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.05), transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(255,255,255,0.04), transparent 45%),
-      var(--bg);
-    color:var(--chalk); font-family:'Inter',sans-serif;
-    min-height:100%; display:flex; flex-direction:column; align-items:center;
-  }
+  body{ background: radial-gradient(circle at 15% 8%, rgba(255,255,255,0.05), transparent 40%), radial-gradient(circle at 85% 90%, rgba(255,255,255,0.04), transparent 45%), var(--bg); color:var(--chalk); font-family:'Inter',sans-serif; min-height:100%; display:flex; flex-direction:column; align-items:center; }
   #app{ width:100%; max-width:480px; padding:20px 16px 40px; min-height:100vh; }
   h1,h2,h3{ font-family:'Kalam',cursive; font-weight:700; margin:0 0 4px; }
   .title{ text-align:center; font-size:38px; margin-top:6px; margin-bottom:2px; text-shadow: 0 0 18px rgba(244,193,75,0.15); }
@@ -84,19 +72,18 @@
   .foot-nav{ margin-top:22px; }
   .center{ text-align:center; }
   .small-note{ color:var(--chalk-dim); font-size:12px; text-align:center; margin-top:10px;}
+  .debug-box{ background:var(--red); color:#fff; padding:12px; border-radius:8px; margin-bottom:10px; font-size:12px; word-break:break-all;}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-// ---------- Firebase Realtime Database (REST) ----------
 const DB_URL = "https://spiele-0815-default-rtdb.europe-west1.firebasedatabase.app";
 
 function uid(){ return 'p_' + Math.random().toString(36).slice(2,9); }
 function randCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
 function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 
-// WICHTIG: Firebase wandelt Arrays manchmal in Objekte um. Diese Funktion macht sie wieder zu echten Arrays.
 function ensureArray(v){
   if(Array.isArray(v)) return v;
   if(v && typeof v==='object'){
@@ -117,9 +104,15 @@ function normalizeRoom(r){
   if(r.state){
     if(r.game==='ttt'){
       r.state.board = ensureArray(r.state.board);
+      while(r.state.board.length < 9) r.state.board.push(null);
     }
     if(r.game==='c4'){
-      r.state.board = ensureArray(r.state.board).map(row=>ensureArray(row));
+      r.state.board = ensureArray(r.state.board).map(row=>{
+        const arr = ensureArray(row);
+        while(arr.length < 7) arr.push(null);
+        return arr;
+      });
+      while(r.state.board.length < 6) r.state.board.push(Array(7).fill(null));
     }
     if(r.game==='ship' && r.state.boards){
       Object.keys(r.state.boards).forEach(pid=>{
@@ -133,7 +126,13 @@ function normalizeRoom(r){
     if(r.game==='kniffel'){
       r.state.order = ensureArray(r.state.order);
       r.state.dice = ensureArray(r.state.dice);
+      while(r.state.dice.length < 5) r.state.dice.push(1);
       r.state.held = ensureArray(r.state.held);
+      while(r.state.held.length < 5) r.state.held.push(false);
+      if(!r.state.scores) r.state.scores = {};
+      r.state.order.forEach(pid=>{
+        if(!r.state.scores[pid]) r.state.scores[pid] = {};
+      });
     }
   }
   return r;
@@ -271,7 +270,6 @@ async function backToLobby(){
   local.screen='lobby'; local.pickA=null; local.pickB=null; render();
 }
 
-// ---------- game state init ----------
 function initGameState(game, active){
   if(game==='ttt') return { board:Array(9).fill(null), turn:0, winner:null };
   if(game==='c4') return { board:Array.from({length:6},()=>Array(7).fill(null)), turn:0, winner:null };
@@ -288,7 +286,6 @@ function initGameState(game, active){
   return null;
 }
 
-// ---------- Tic Tac Toe ----------
 function tttWinner(board){
   const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   for(const [a,b,c] of lines){ if(board[a] && board[a]===board[b] && board[b]===board[c]) return board[a]; }
@@ -297,7 +294,7 @@ function tttWinner(board){
 }
 async function tttClick(i){
   const r = await refreshRoom();
-  if(!r || !r.state) { render(); return; }
+  if(!r || !r.state) return;
   const s = r.state;
   if(s.winner) return;
   if(r.activePlayers[s.turn]!==myId) return;
@@ -308,7 +305,6 @@ async function tttClick(i){
   await saveRoom(r); room=r; render();
 }
 
-// ---------- Connect4 ----------
 function c4Winner(board){
   const rows=6, cols=7; const dirs=[[0,1],[1,0],[1,1],[1,-1]];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
@@ -327,7 +323,7 @@ function c4Winner(board){
 }
 async function c4Click(col){
   const r = await refreshRoom();
-  if(!r || !r.state) { render(); return; }
+  if(!r || !r.state) return;
   const s = r.state;
   if(s.winner) return;
   if(r.activePlayers[s.turn]!==myId) return;
@@ -339,7 +335,6 @@ async function c4Click(col){
   await saveRoom(r); room=r; render();
 }
 
-// ---------- Battleship ----------
 const SHIP_SIZES=[4,3,2,2];
 function placeShipsRandom(){
   const size=8;
@@ -366,7 +361,7 @@ function shipCellHit(ships, r, c){ return ships.some(([sr,sc])=>sr===r&&sc===c);
 function allShipsSunk(ships, shots){ return ships.every(([sr,sc]) => shots.some(s=>s.r===sr && s.c===sc && s.hit)); }
 async function shipClick(targetPid, r, c){
   const rm = await refreshRoom();
-  if(!rm || !rm.state) { render(); return; }
+  if(!rm || !rm.state) return;
   const s = rm.state;
   if(s.winner) return;
   if(s.turn!==myId) return;
@@ -380,7 +375,6 @@ async function shipClick(targetPid, r, c){
   await saveRoom(rm); room=rm; render();
 }
 
-// ---------- Kniffel ----------
 const KNIFFEL_CATS = [
   {key:'ones', label:'Einser'}, {key:'twos', label:'Zweier'}, {key:'threes', label:'Dreier'},
   {key:'fours', label:'Vierer'}, {key:'fives', label:'Fünfer'}, {key:'sixes', label:'Sechser'},
@@ -413,7 +407,7 @@ function kTotal(scores){
 }
 async function kniffelRoll(){
   const r = await refreshRoom();
-  if(!r || !r.state) { render(); return; }
+  if(!r || !r.state) return;
   const s = r.state;
   if(s.finished) return;
   if(s.order[s.turn]!==myId) return;
@@ -424,7 +418,7 @@ async function kniffelRoll(){
 }
 async function kniffelHold(i){
   const r = await refreshRoom();
-  if(!r || !r.state) { render(); return; }
+  if(!r || !r.state) return;
   const s = r.state;
   if(s.order[s.turn]!==myId) return;
   if(!s.rolledOnce) return;
@@ -433,7 +427,7 @@ async function kniffelHold(i){
 }
 async function kniffelScore(cat){
   const r = await refreshRoom();
-  if(!r || !r.state) { render(); return; }
+  if(!r || !r.state) return;
   const s = r.state;
   if(s.finished) return;
   if(s.order[s.turn]!==myId) return;
@@ -447,12 +441,16 @@ async function kniffelScore(cat){
   await saveRoom(r); room=r; render();
 }
 
-// ---------- rendering ----------
 const app = document.getElementById('app');
 function render(){
-  if(local.screen==='landing') return renderLanding();
-  if(local.screen==='lobby') return renderLobby();
-  if(local.screen==='game') return renderGame();
+  try {
+    if(local.screen==='landing') return renderLanding();
+    if(local.screen==='lobby') return renderLobby();
+    if(local.screen==='game') return renderGame();
+  } catch(e) {
+    app.innerHTML = `<div class="card"><div class="debug-box">Render-Fehler: ${esc(e.message)}<br>Bitte Seite neu laden.</div><button class="secondary" onclick="local.screen='lobby';render();">Zurück zur Lobby</button></div>`;
+    console.error(e);
+  }
 }
 
 function renderLanding(){
@@ -549,11 +547,15 @@ function renderLobby(){
 function nameOf(pid){ const p = room.players.find(x=>x.id===pid); return p ? p.name : '?'; }
 
 function renderGame(){
-  if(!room.game || !room.state){ local.screen='lobby'; render(); return; }
+  if(!room || !room.game || !room.state){
+    app.innerHTML = '<div class="card"><div class="error">Fehler: Spiel-Daten nicht gefunden. <button class="secondary" onclick="local.screen=\'lobby\';render();">Zurück</button></div></div>';
+    return;
+  }
   if(room.game==='ttt') return renderTTT();
   if(room.game==='c4') return renderC4();
   if(room.game==='ship') return renderShip();
   if(room.game==='kniffel') return renderKniffel();
+  app.innerHTML = '<div class="card"><div class="error">Unbekanntes Spiel.</div></div>';
 }
 function statusHtml(text, win){ return `<div class="status-bar ${win?'win':''}">${text}</div>`; }
 
