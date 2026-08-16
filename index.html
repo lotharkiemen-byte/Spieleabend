@@ -84,17 +84,20 @@ function uid(){ return 'p_' + Math.random().toString(36).slice(2,9); }
 function randCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
 function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 
+// WICHTIG: Firebase entfernt null-Werte aus Arrays. Diese Funktion baut das Array
+// als DICHTES Array wieder auf (keine leeren Slots), damit .map() und .length korrekt funktionieren.
 function ensureArray(v){
   if(Array.isArray(v)) return v;
   if(v && typeof v==='object'){
-    const keys = Object.keys(v).filter(k=>k!=='__proto__');
-    if(keys.every(k=>/^\d+$/.test(k))){
+    const keys = Object.keys(v).filter(k=>k!=='__proto__' && /^\d+$/.test(k));
+    if(keys.length > 0){
+      const max = Math.max(...keys.map(Number));
       const arr = [];
-      keys.forEach(k=> arr[parseInt(k)] = v[k]);
+      for(let i=0; i<=max; i++) arr.push(v[i] !== undefined ? v[i] : null);
       return arr;
     }
   }
-  return v || [];
+  return [];
 }
 
 function normalizeRoom(r){
@@ -107,7 +110,8 @@ function normalizeRoom(r){
       while(r.state.board.length < 9) r.state.board.push(null);
     }
     if(r.game==='c4'){
-      r.state.board = ensureArray(r.state.board).map(row=>{
+      r.state.board = ensureArray(r.state.board);
+      r.state.board = r.state.board.map(row=>{
         const arr = ensureArray(row);
         while(arr.length < 7) arr.push(null);
         return arr;
