@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Spieleabend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#14302a;
+    --bg2:#1c3f37;
+    --bg3:#234a40;
+    --chalk:#f3ead9;
+    --chalk-dim:#b9c9c1;
+    --yellow:#f4c14b;
+    --red:#e2574c;
+    --blue:#5aa9c4;
+    --line: rgba(243,234,217,0.18);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.05), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(255,255,255,0.04), transparent 45%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #app{
+    width:100%;
+    max-width:480px;
+    padding:20px 16px 40px;
+    min-height:100vh;
+  }
+  h1,h2,h3{ font-family:'Kalam',cursive; font-weight:700; margin:0 0 4px; }
+  .title{
+    text-align:center;
+    font-size:38px;
+    color:var(--chalk);
+    letter-spacing:0.5px;
+    margin-top:6px;
+    margin-bottom:2px;
+    text-shadow: 0 0 18px rgba(244,193,75,0.15);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--chalk-dim);
+    font-size:14px;
+    margin-bottom:26px;
+  }
+  .card{
+    background:var(--bg2);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  label{ display:block; font-size:13px; color:var(--chalk-dim); margin-bottom:6px; font-weight:600; }
+  input[type=text]{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    color:var(--chalk);
+    font-size:17px;
+    font-family:'Inter',sans-serif;
+    margin-bottom:14px;
+    outline:none;
+  }
+  input[type=text]:focus{ border-color: var(--yellow); }
+  input[type=text].code-input{
+    text-transform:uppercase;
+    letter-spacing:6px;
+    text-align:center;
+    font-family:'Kalam',cursive;
+    font-size:24px;
+  }
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    border:none;
+    border-radius:12px;
+    padding:14px 18px;
+    cursor:pointer;
+    width:100%;
+    margin-bottom:10px;
+    transition: transform 0.08s ease, opacity .15s ease;
+  }
+  button:active{ transform: scale(0.97); }
+  button.primary{ background:var(--yellow); color:#1c2420; }
+  button.secondary{ background:transparent; color:var(--chalk); border:1px solid var(--line); }
+  button.danger{ background:var(--red); color:#fff; }
+  button:disabled{ opacity:0.4; cursor:default; }
+  button.small{ width:auto; padding:8px 14px; font-size:13px; margin-bottom:0;}
+  .row{ display:flex; gap:10px; }
+  .row > *{ flex:1; }
+  .error{ color:var(--red); font-size:13px; margin:-6px 0 12px; font-weight:600; }
+  .code-display{
+    text-align:center;
+    font-family:'Kalam',cursive;
+    font-size:44px;
+    letter-spacing:10px;
+    color:var(--yellow);
+    border-bottom: 3px dashed var(--line);
+    padding-bottom:14px;
+    margin-bottom:14px;
+  }
+  .hint{ text-align:center; color:var(--chalk-dim); font-size:13px; margin-bottom:20px;}
+  .players-list{ list-style:none; padding:0; margin:0 0 18px; }
+  .players-list li{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 4px; border-bottom:1px solid var(--line); font-size:15px;
+  }
+  .players-list li:last-child{ border-bottom:none; }
+  .host-tag{ font-size:11px; background:var(--yellow); color:#1c2420; padding:2px 8px; border-radius:8px; font-weight:800; }
+  .you-tag{ font-size:11px; color:var(--chalk-dim); }
+  .game-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+  .game-btn{
+    background:var(--bg3); border:1px solid var(--line); border-radius:16px;
+    padding:18px 10px; text-align:center; cursor:pointer; color:var(--chalk);
+  }
+  .game-btn .emoji{ font-size:30px; display:block; margin-bottom:6px; }
+  .game-btn.active{ border-color:var(--yellow); background: rgba(244,193,75,0.12); }
+  .pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .pick-chip{
+    padding:8px 14px; border-radius:20px; border:1px solid var(--line);
+    background:var(--bg); font-size:14px; cursor:pointer; color:var(--chalk-dim);
+  }
+  .pick-chip.selected{ background:var(--yellow); color:#1c2420; border-color:var(--yellow); font-weight:700;}
+  .status-bar{
+    text-align:center; font-size:16px; font-weight:700; margin-bottom:16px;
+    background:var(--bg2); border-radius:12px; padding:12px; border:1px solid var(--line);
+  }
+  .status-bar.win{ color:var(--yellow); }
+  .ttt-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:8px; max-width:300px; margin:0 auto 18px; }
+  .ttt-cell{
+    aspect-ratio:1; background:var(--bg); border-radius:12px; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-family:'Kalam',cursive;
+    font-size:44px; font-weight:700; cursor:pointer;
+  }
+  .ttt-cell.x{ color:var(--red); }
+  .ttt-cell.o{ color:var(--blue); }
+  .c4-board{ background:var(--bg3); border-radius:14px; padding:8px; display:grid; grid-template-columns:repeat(7,1fr); gap:6px; max-width:420px; margin:0 auto 6px;}
+  .c4-col{ display:flex; flex-direction:column; gap:6px; cursor:pointer; }
+  .c4-cell{ aspect-ratio:1; border-radius:50%; background:var(--bg); }
+  .c4-cell.p0{ background:var(--red); }
+  .c4-cell.p1{ background:var(--yellow); }
+  .c4-collabel{ text-align:center; color:var(--chalk-dim); font-size:11px; margin-bottom:18px;}
+  .ship-boards{ display:flex; flex-direction:column; gap:22px; }
+  .ship-label{ font-size:13px; color:var(--chalk-dim); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  .ship-grid{ display:grid; grid-template-columns:repeat(8,1fr); gap:4px; max-width:340px; margin:0 auto; }
+  .ship-cell{ aspect-ratio:1; background:var(--bg); border-radius:5px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .ship-cell.own-ship{ background:var(--blue); }
+  .ship-cell.hit{ background:var(--red); color:#fff; }
+  .ship-cell.miss{ background:var(--bg3); }
+  .ship-cell.target{ cursor:pointer; }
+  .ship-cell.target:active{ opacity:0.7; }
+  .dice-row{ display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
+  .die{
+    width:52px; height:52px; background:var(--chalk); color:#1c2420; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800;
+    cursor:pointer; border:3px solid transparent; font-family:'Inter',sans-serif;
+  }
+  .die.held{ border-color:var(--yellow); background:#fff8e8; }
+  .score-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  .score-table th, .score-table td{ padding:7px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  .score-table th{ color:var(--chalk-dim); font-weight:600; font-size:11px; }
+  .score-table td.catname{ text-align:left; color:var(--chalk-dim); }
+  .score-table td.cell{ cursor:pointer; color:var(--chalk-dim); }
+  .score-table td.cell.filled{ color:var(--chalk); font-weight:700; cursor:default; }
+  .score-table td.cell.suggest{ color:var(--yellow); font-weight:700; }
+  .score-table tr.me{ background: rgba(244,193,75,0.06); }
+  .foot-nav{ margin-top:22px; }
+  .center{ text-align:center; }
+  .small-note{ color:var(--chalk-dim); font-size:12px; text-align:center; margin-top:10px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ==================== FIREBASE KONFIGURATION ====================
+// Ersetze die folgenden 6 Werte durch deine eigenen aus der Firebase Console:
+const firebaseConfig = {
+    apiKey: "AIzaSyBZaaHPhP-bTEBsIMQ6IHQ0Mfoq7vkNJKU",
+  authDomain: "spiele-0815.firebaseapp.com",
+  databaseURL: "https://spiele-0815-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "spiele-0815",
+  storageBucket: "spiele-0815.firebasestorage.app",
+  messagingSenderId: "167842522327",
+  appId: "1:167842522327:web:982467a96163cdcbabfc92",
+  measurementId: "G-D4XYWM0Y2N"
+};
+// =================================================================
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function uid(){ return 'p_' + Math.random().toString(36).slice(2,9); }
+function randCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+function roomRef(code){ return db.ref('rooms/' + code); }
+function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+const myId = uid();
+let myName = '';
+let local = { screen:'landing', code:'', error:'', joinCodeInput:'', nameInput:'', pickA:null, pickB:null};
+let room = null;
+let roomListener = null;
+
+function startListening(code){
+  stopListening();
+  roomListener = roomRef(code).on('value', snap => {
+    const val = snap.val();
+    if(val){
+      room = val;
+      if(local.screen==='lobby' || local.screen==='game'){
+        goToGameScreenIfActive();
+        render();
+      }
+    }
+  });
+}
+function stopListening(){ if(roomListener){ roomRef(local.code).off('value', roomListener); roomListener=null; } }
+
+async function loadRoom(code){
+  const snap = await roomRef(code).once('value');
+  return snap.val();
+}
+async function saveRoom(r){
+  r.updatedAt = Date.now();
+  await roomRef(r.code).set(r);
+  return true;
+}
+
+// ---------- actions: room / lobby ----------
+async function createRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  myName = name;
+  let code, existing;
+  for(let i=0;i<8;i++){
+    code = randCode();
+    existing = await loadRoom(code);
+    if(!existing) break;
+  }
+  const newRoom = {
+    code, hostId: myId,
+    players: [{id:myId, name:myName}],
+    game:null, activePlayers:[], state:null,
+    createdAt: Date.now()
+  };
+  await saveRoom(newRoom);
+  room = newRoom; local.code = code; local.screen='lobby';
+  startListening(code); render();
+}
+
+async function joinRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  const code = local.joinCodeInput.trim().toUpperCase();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  if(!code || code.length<4){ local.error='Bitte gib einen gültigen Raumcode ein.'; render(); return; }
+  myName = name;
+  const r = await loadRoom(code);
+  if(!r){ local.error='Diesen Raum gibt es nicht.'; render(); return; }
+  if(r.players.length>=10 && !r.players.find(p=>p.id===myId)){ local.error='Der Raum ist voll (max. 10 Teilnehmer).'; render(); return; }
+  if(!r.players.find(p=>p.id===myId)){
+    r.players.push({id:myId, name:myName});
+    await saveRoom(r);
+  }
+  room = r; local.code = code; local.screen='lobby';
+  startListening(code); render();
+}
+
+function leaveToLanding(){
+  stopListening();
+  room=null; local = {screen:'landing', code:'', error:'', joinCodeInput:'', nameInput:myName, pickA:null, pickB:null};
+  render();
+}
+
+async function refreshRoom(){
+  const r = await loadRoom(local.code);
+  if(r){ room=r; }
+  return room;
+}
+
+function isHost(){ return room && room.hostId===myId; }
+
+async function selectGame(g){
+  if(!isHost()) return;
+  const r = await refreshRoom();
+  r.game = g;
+  if(g==='kniffel'){
+    r.activePlayers = r.players.map(p=>p.id);
+  } else {
+    r.activePlayers = [];
+  }
+  r.state = null;
+  await saveRoom(r); room=r; local.pickA=null; local.pickB=null; render();
+}
+
+function pickPlayer(slot, pid){
+  if(!isHost()) return;
+  if(slot==='a') local.pickA = (local.pickA===pid) ? null : pid;
+  if(slot==='b') local.pickB = (local.pickB===pid) ? null : pid;
+  render();
+}
+
+async function startMatch(){
+  if(!isHost()) return;
+  if(!local.pickA || !local.pickB || local.pickA===local.pickB){ return; }
+  const r = await refreshRoom();
+  r.activePlayers = [local.pickA, local.pickB];
+  r.state = initGameState(r.game, r.activePlayers, r.players);
+  await saveRoom(r); room=r; local.screen='game'; render();
+}
+
+async function startKniffel(){
+  if(!isHost()) return;
+  const r = await refreshRoom();
+  if(r.players.length<1) return;
+  r.activePlayers = r.players.map(p=>p.id);
+  r.state = initGameState('kniffel', r.activePlayers, r.players);
+  await saveRoom(r); room=r; local.screen='game'; render();
+}
+
+async function backToLobby(){
+  if(isHost()){
+    const r = await refreshRoom();
+    r.game=null; r.state=null; r.activePlayers=[];
+    await saveRoom(r); room=r;
+  }
+  local.screen='lobby'; local.pickA=null; local.pickB=null; render();
+}
+
+function goToGameScreenIfActive(){
+  if(room && room.game && room.state){ local.screen='game'; }
+}
+
+// ---------- game state init ----------
+function initGameState(game, activePlayers, players){
+  if(game==='ttt'){
+    return { board:Array(9).fill(null), turn:0, winner:null };
+  }
+  if(game==='c4'){
+    return { board:Array.from({length:6},()=>Array(7).fill(null)), turn:0, winner:null };
+  }
+  if(game==='ship'){
+    const boards = {};
+    activePlayers.forEach(pid=>{
+      boards[pid] = { ships: placeShipsRandom(), shots: [] };
+    });
+    return { boards, turn: activePlayers[0], winner:null };
+  }
+  if(game==='kniffel'){
+    const scores = {};
+    activePlayers.forEach(pid=>{ scores[pid] = {}; KNIFFEL_CATS.forEach(c=> scores[pid][c.key]=null); });
+    return { order:activePlayers, turn:0, dice:[1,1,1,1,1], held:[false,false,false,false,false], rollsLeft:3, scores, finished:false, rolledOnce:false };
+  }
+  return null;
+}
+
+// ---------- Tic Tac Toe ----------
+function tttWinner(board){
+  const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for(const [a,b,c] of lines){
+    if(board[a] && board[a]===board[b] && board[b]===board[c]) return board[a];
+  }
+  if(board.every(x=>x)) return 'draw';
+  return null;
+}
+async function tttClick(i){
+  const r = await refreshRoom();
+  const s = r.state;
+  if(s.winner) return;
+  if(r.activePlayers[s.turn]!==myId) return;
+  if(s.board[i]) return;
+  s.board[i] = myId;
+  const w = tttWinner(s.board);
+  if(w) s.winner = w;
+  else s.turn = 1-s.turn;
+  await saveRoom(r); room=r; render();
+}
+
+// ---------- Connect4 ----------
+function c4Winner(board){
+  const rows=6, cols=7;
+  const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const v=board[r][c]; if(!v) continue;
+    for(const [dr,dc] of dirs){
+      let ok=true;
+      for(let k=1;k<4;k++){
+        const nr=r+dr*k, nc=c+dc*k;
+        if(nr<0||nr>=rows||nc<0||nc>=cols||board[nr][nc]!==v){ ok=false; break; }
+      }
+      if(ok) return v;
+    }
+  }
+  if(board.every(row=>row.every(x=>x))) return 'draw';
+  return null;
+}
+async function c4Click(col){
+  const r = await refreshRoom();
+  const s = r.state;
+  if(s.winner) return;
+  if(r.activePlayers[s.turn]!==myId) return;
+  let placedRow=-1;
+  for(let row=5; row>=0; row--){
+    if(!s.board[row][col]){ s.board[row][col]=myId; placedRow=row; break; }
+  }
+  if(placedRow===-1) return;
+  const w = c4Winner(s.board);
+  if(w) s.winner=w;
+  else s.turn = 1-s.turn;
+  await saveRoom(r); room=r; render();
+}
+
+// ---------- Battleship ----------
+const SHIP_SIZES=[4,3,2,2];
+function placeShipsRandom(){
+  const size=8;
+  const grid = Array.from({length:size},()=>Array(size).fill(false));
+  const cells=[];
+  for(const len of SHIP_SIZES){
+    let placed=false, tries=0;
+    while(!placed && tries<200){
+      tries++;
+      const horiz = Math.random()<0.5;
+      const r = Math.floor(Math.random()*size);
+      const c = Math.floor(Math.random()*size);
+      const cand=[];
+      let ok=true;
+      for(let k=0;k<len;k++){
+        const rr = horiz? r : r+k;
+        const cc = horiz? c+k : c;
+        if(rr>=size||cc>=size||grid[rr][cc]){ ok=false; break; }
+        cand.push([rr,cc]);
+      }
+      if(ok){
+        cand.forEach(([rr,cc])=>grid[rr][cc]=true);
+        cells.push(...cand);
+        placed=true;
+      }
+    }
+  }
+  return cells;
+}
+function shipCellHit(ships, r, c){ return ships.some(([sr,sc])=>sr===r&&sc===c); }
+function allShipsSunk(ships, shots){
+  return ships.every(([sr,sc]) => shots.some(s=>s.r===sr && s.c===sc && s.hit));
+}
+async function shipClick(targetPid, r, c){
+  const rm = await refreshRoom();
+  const s = rm.state;
+  if(s.winner) return;
+  if(s.turn!==myId) return;
+  if(targetPid===myId) return;
+  const board = s.boards[targetPid];
+  if(board.shots.some(x=>x.r===r && x.c===c)) return;
+  const hit = shipCellHit(board.ships, r, c);
+  board.shots.push({r,c,hit});
+  if(hit && allShipsSunk(board.ships, board.shots)){
+    s.winner = myId;
+  } else {
+    const opp = rm.activePlayers.find(p=>p!==myId);
+    s.turn = opp;
+  }
+  await saveRoom(rm); room=rm; render();
+}
+
+// ---------- Kniffel ----------
+const KNIFFEL_CATS = [
+  {key:'ones', label:'Einser'}, {key:'twos', label:'Zweier'}, {key:'threes', label:'Dreier'},
+  {key:'fours', label:'Vierer'}, {key:'fives', label:'Fünfer'}, {key:'sixes', label:'Sechser'},
+  {key:'threeKind', label:'Dreierpasch'}, {key:'fourKind', label:'Viererpasch'},
+  {key:'fullHouse', label:'Full House'}, {key:'smallStraight', label:'Kl. Straße'},
+  {key:'largeStraight', label:'Gr. Straße'}, {key:'kniffel', label:'Kniffel'}, {key:'chance', label:'Chance'}
+];
+function kCounts(dice){ const c=[0,0,0,0,0,0,0]; dice.forEach(d=>c[d]++); return c; }
+function kSumOf(dice,n){ return dice.filter(d=>d===n).reduce((a,b)=>a+b,0); }
+function kScore(cat, dice){
+  const c = kCounts(dice);
+  const sum = dice.reduce((a,b)=>a+b,0);
+  switch(cat){
+    case 'ones': return kSumOf(dice,1);
+    case 'twos': return kSumOf(dice,2);
+    case 'threes': return kSumOf(dice,3);
+    case 'fours': return kSumOf(dice,4);
+    case 'fives': return kSumOf(dice,5);
+    case 'sixes': return kSumOf(dice,6);
+    case 'threeKind': return c.some(x=>x>=3) ? sum : 0;
+    case 'fourKind': return c.some(x=>x>=4) ? sum : 0;
+    case 'fullHouse': return (c.includes(3) && c.includes(2)) ? 25 : 0;
+    case 'smallStraight': {
+      const s = new Set(dice);
+      const seqs=[[1,2,3,4],[2,3,4,5],[3,4,5,6]];
+      return seqs.some(seq=>seq.every(n=>s.has(n))) ? 30 : 0;
+    }
+    case 'largeStraight': {
+      const s=[...dice].sort().join(',');
+      return (s==='1,2,3,4,5'||s==='2,3,4,5,6') ? 40 : 0;
+    }
+    case 'kniffel': return c.some(x=>x>=5) ? 50 : 0;
+    case 'chance': return sum;
+  }
+}
+function kTotal(scores){
+  let upper=0, lower=0;
+  ['ones','twos','threes','fours','fives','sixes'].forEach(k=>{ upper += scores[k]||0; });
+  const bonus = upper>=63 ? 35 : 0;
+  ['threeKind','fourKind','fullHouse','smallStraight','largeStraight','kniffel','chance'].forEach(k=>{ lower += scores[k]||0; });
+  return upper+bonus+lower;
+}
+async function kniffelRoll(){
+  const r = await refreshRoom();
+  const s = r.state;
+  if(s.finished) return;
+  if(s.order[s.turn]!==myId) return;
+  if(s.rollsLeft<=0) return;
+  s.dice = s.dice.map((d,i)=> s.held[i] ? d : (1+Math.floor(Math.random()*6)));
+  s.rollsLeft -= 1;
+  s.rolledOnce = true;
+  await saveRoom(r); room=r; render();
+}
+async function kniffelHold(i){
+  const r = await refreshRoom();
+  const s = r.state;
+  if(s.order[s.turn]!==myId) return;
+  if(!s.rolledOnce) return;
+  s.held[i] = !s.held[i];
+  await saveRoom(r); room=r; render();
+}
+async function kniffelScore(cat){
+  const r = await refreshRoom();
+  const s = r.state;
+  if(s.finished) return;
+  if(s.order[s.turn]!==myId) return;
+  if(!s.rolledOnce) return;
+  if(s.scores[myId][cat]!==null) return;
+  s.scores[myId][cat] = kScore(cat, s.dice);
+  s.dice=[1,1,1,1,1]; s.held=[false,false,false,false,false]; s.rollsLeft=3; s.rolledOnce=fals
