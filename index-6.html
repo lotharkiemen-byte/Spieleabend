@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Spieleabend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14302a; --bg2:#1c3f37; --bg3:#234a40;
+    --chalk:#f3ead9; --chalk-dim:#b9c9c1;
+    --yellow:#f4c14b; --red:#e2574c; --blue:#5aa9c4;
+    --line: rgba(243,234,217,0.18);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 15% 8%, rgba(255,255,255,0.05), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(255,255,255,0.04), transparent 45%),
+      var(--bg);
+    color:var(--chalk); font-family:'Inter',sans-serif;
+    min-height:100%; display:flex; flex-direction:column; align-items:center;
+  }
+  #app{ width:100%; max-width:480px; padding:20px 16px 40px; min-height:100vh; }
+  h1,h2,h3{ font-family:'Kalam',cursive; font-weight:700; margin:0 0 4px; }
+  .title{ text-align:center; font-size:38px; margin-top:6px; margin-bottom:2px; text-shadow: 0 0 18px rgba(244,193,75,0.15); }
+  .subtitle{ text-align:center; color:var(--chalk-dim); font-size:14px; margin-bottom:26px; }
+  .card{ background:var(--bg2); border:1px solid var(--line); border-radius:18px; padding:20px; margin-bottom:16px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  label{ display:block; font-size:13px; color:var(--chalk-dim); margin-bottom:6px; font-weight:600; }
+  input[type=text]{ width:100%; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:14px; color:var(--chalk); font-size:17px; font-family:'Inter',sans-serif; margin-bottom:14px; outline:none; }
+  input[type=text]:focus{ border-color: var(--yellow); }
+  input[type=text].code-input{ text-transform:uppercase; letter-spacing:6px; text-align:center; font-family:'Kalam',cursive; font-size:24px; }
+  button{ font-family:'Inter',sans-serif; font-weight:700; font-size:15px; border:none; border-radius:12px; padding:14px 18px; cursor:pointer; width:100%; margin-bottom:10px; transition: transform 0.08s ease, opacity .15s ease; }
+  button:active{ transform: scale(0.97); }
+  button.primary{ background:var(--yellow); color:#1c2420; }
+  button.secondary{ background:transparent; color:var(--chalk); border:1px solid var(--line); }
+  button:disabled{ opacity:0.4; cursor:default; }
+  .error{ color:var(--red); font-size:13px; margin:-6px 0 12px; font-weight:600; }
+  .code-display{ text-align:center; font-family:'Kalam',cursive; font-size:44px; letter-spacing:10px; color:var(--yellow); border-bottom: 3px dashed var(--line); padding-bottom:14px; margin-bottom:14px; }
+  .hint{ text-align:center; color:var(--chalk-dim); font-size:13px; margin-bottom:20px;}
+  .players-list{ list-style:none; padding:0; margin:0 0 18px; }
+  .players-list li{ display:flex; align-items:center; justify-content:space-between; padding:10px 4px; border-bottom:1px solid var(--line); font-size:15px; }
+  .players-list li:last-child{ border-bottom:none; }
+  .host-tag{ font-size:11px; background:var(--yellow); color:#1c2420; padding:2px 8px; border-radius:8px; font-weight:800; }
+  .you-tag{ font-size:11px; color:var(--chalk-dim); }
+  .game-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+  .game-btn{ background:var(--bg3); border:1px solid var(--line); border-radius:16px; padding:18px 10px; text-align:center; cursor:pointer; color:var(--chalk); }
+  .game-btn .emoji{ font-size:30px; display:block; margin-bottom:6px; }
+  .game-btn.active{ border-color:var(--yellow); background: rgba(244,193,75,0.12); }
+  .pick-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .pick-chip{ padding:8px 14px; border-radius:20px; border:1px solid var(--line); background:var(--bg); font-size:14px; cursor:pointer; color:var(--chalk-dim); }
+  .pick-chip.selected{ background:var(--yellow); color:#1c2420; border-color:var(--yellow); font-weight:700;}
+  .status-bar{ text-align:center; font-size:16px; font-weight:700; margin-bottom:16px; background:var(--bg2); border-radius:12px; padding:12px; border:1px solid var(--line); }
+  .status-bar.win{ color:var(--yellow); }
+  .ttt-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:8px; max-width:300px; margin:0 auto 18px; }
+  .ttt-cell{ aspect-ratio:1; background:var(--bg); border-radius:12px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-family:'Kalam',cursive; font-size:44px; font-weight:700; cursor:pointer; }
+  .ttt-cell.x{ color:var(--red); } .ttt-cell.o{ color:var(--blue); }
+  .c4-board{ background:var(--bg3); border-radius:14px; padding:8px; display:grid; grid-template-columns:repeat(7,1fr); gap:6px; max-width:420px; margin:0 auto 6px;}
+  .c4-col{ display:flex; flex-direction:column; gap:6px; cursor:pointer; }
+  .c4-cell{ aspect-ratio:1; border-radius:50%; background:var(--bg); }
+  .c4-cell.p0{ background:var(--red); } .c4-cell.p1{ background:var(--yellow); }
+  .c4-collabel{ text-align:center; color:var(--chalk-dim); font-size:11px; margin-bottom:18px;}
+  .ship-boards{ display:flex; flex-direction:column; gap:22px; }
+  .ship-label{ font-size:13px; color:var(--chalk-dim); margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  .ship-grid{ display:grid; grid-template-columns:repeat(8,1fr); gap:4px; max-width:340px; margin:0 auto; }
+  .ship-cell{ aspect-ratio:1; background:var(--bg); border-radius:5px; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .ship-cell.own-ship{ background:var(--blue); }
+  .ship-cell.hit{ background:var(--red); color:#fff; }
+  .ship-cell.miss{ background:var(--bg3); }
+  .ship-cell.target{ cursor:pointer; }
+  .ship-cell.target:active{ opacity:0.7; }
+  .dice-row{ display:flex; gap:10px; justify-content:center; margin-bottom:16px; }
+  .die{ width:52px; height:52px; background:var(--chalk); color:#1c2420; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; cursor:pointer; border:3px solid transparent; font-family:'Inter',sans-serif; }
+  .die.held{ border-color:var(--yellow); background:#fff8e8; }
+  .score-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:6px;}
+  .score-table th, .score-table td{ padding:7px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  .score-table th{ color:var(--chalk-dim); font-weight:600; font-size:11px; }
+  .score-table td.catname{ text-align:left; color:var(--chalk-dim); }
+  .score-table td.cell{ cursor:pointer; color:var(--chalk-dim); }
+  .score-table td.cell.filled{ color:var(--chalk); font-weight:700; cursor:default; }
+  .score-table td.cell.suggest{ color:var(--yellow); font-weight:700; }
+  .foot-nav{ margin-top:22px; }
+  .center{ text-align:center; }
+  .small-note{ color:var(--chalk-dim); font-size:12px; text-align:center; margin-top:10px;}
+  .tetris-board{ display:grid; grid-template-columns:repeat(10,1fr); gap:1px; background:var(--bg3); border:2px solid var(--line); border-radius:8px; padding:4px; max-width:260px; margin:0 auto 16px; }
+  .tetris-cell{ aspect-ratio:1; background:var(--bg); border-radius:2px; }
+  .tetris-cell.I{ background:#5aa9c4; } .tetris-cell.O{ background:#f4c14b; }
+  .tetris-cell.T{ background:#b57edc; } .tetris-cell.S{ background:#6fcf7a; }
+  .tetris-cell.Z{ background:#e2574c; } .tetris-cell.J{ background:#5a7ac4; }
+  .tetris-cell.L{ background:#f0975a; }
+  .tetris-controls{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; max-width:320px; margin:0 auto; }
+  .tetris-controls button{ padding:16px 4px; font-size:20px; margin-bottom:0; }
+  .tetris-stats{ display:flex; justify-content:space-around; margin-bottom:12px; font-size:14px; }
+  .mj-board{ position:relative; margin:0 auto 6px; }
+  .mj-tile{ position:absolute; width:30px; height:40px; border-radius:4px; background:var(--chalk); color:#1c2420; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:17px; line-height:1; border:2px solid rgba(0,0,0,0.25); box-shadow:1px 1px 3px rgba(0,0,0,0.4); cursor:pointer; }
+  .mj-tile .mj-code{ font-size:6px; margin-top:1px; color:#4a4038; }
+  .mj-tile.mj-blocked{ filter:grayscale(1) brightness(0.55); cursor:default; }
+  .mj-tile.mj-selected{ border-color:var(--yellow); box-shadow:0 0 0 2px var(--yellow); }
+  .sb-opponents{ font-size:12px; color:var(--chalk-dim); text-align:center; margin-bottom:10px; }
+  .sb-opp{ display:inline-block; margin:0 8px; }
+  .sb-build-row{ display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .sb-pile{ text-align:center; }
+  .sb-pile-label{ font-size:10px; color:var(--chalk-dim); margin-top:4px; }
+  .sb-card{ width:44px; height:60px; background:var(--chalk); color:#1c2420; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; cursor:pointer; border:3px solid transparent; }
+  .sb-card.sb-build{ background:var(--bg3); color:var(--chalk); border:2px dashed var(--line); cursor:default; }
+  .sb-card.sb-empty{ background:var(--bg); color:var(--chalk-dim); font-size:10px; border:2px dashed var(--line); }
+  .sb-card.sb-selected{ border-color:var(--yellow); }
+  .sb-mine{ background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .sb-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .sb-row-label{ font-size:11px; color:var(--chalk-dim); width:66px; flex-shrink:0; }
+  .scr-board{ display:grid; grid-template-columns:repeat(15,1fr); gap:1px; background:var(--bg3); border:2px solid var(--line); border-radius:6px; padding:2px; max-width:100%; margin:0 auto; }
+  .scr-cell{ aspect-ratio:1; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--chalk-dim); border-radius:1px; cursor:pointer; }
+  .scr-cell.scr-tw{ background:#c9524a; color:#fff; font-weight:800; }
+  .scr-cell.scr-dw{ background:#e2a6a0; color:#5a2c28; font-weight:800; }
+  .scr-cell.scr-tl{ background:#5a8fc4; color:#fff; font-weight:800; }
+  .scr-cell.scr-dl{ background:#a8c8e8; color:#1c3a5a; font-weight:800; }
+  .scr-cell.scr-filled{ background:var(--chalk); color:#1c2420; font-size:13px; font-weight:800; cursor:default; }
+  .scr-cell.scr-pending{ background:var(--yellow); color:#1c2420; font-size:13px; font-weight:800; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ---------- Firebase Realtime Database (REST, no SDK needed) ----------
+const DB_URL = "https://spiele-0815-default-rtdb.europe-west1.firebasedatabase.app";
+
+function uid(){ return 'p_' + Math.random().toString(36).slice(2,9); }
+function randCode(){ const chars='ABCDEFGHJKLMNPQRSTUVWXYZ'; let s=''; for(let i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+function esc(s){ return (s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+async function loadRoom(code){
+  try{
+    const res = await fetch(`${DB_URL}/rooms/${code}.json?_ts=${Date.now()}`, { cache: 'no-store' });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data || null;
+  }catch(e){ return null; }
+}
+async function saveRoom(room){
+  room.updatedAt = Date.now();
+  try{
+    const res = await fetch(`${DB_URL}/rooms/${room.code}.json`, {
+      method:'PUT',
+      cache:'no-store',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(room)
+    });
+    return res.ok;
+  }catch(e){ return false; }
+}
+
+const myId = uid();
+let myName = '';
+let local = { screen:'landing', code:'', error:'', joinCodeInput:'', nameInput:'', pickA:null, pickB:null, busy:false };
+let room = null;
+let polling = null;
+
+function startPolling(){
+  stopPolling();
+  polling = setInterval(async ()=>{
+    if(local.screen==='lobby' || local.screen==='game'){
+      const r = await loadRoom(local.code);
+      if(r){ room = r; render(); }
+    }
+  }, 1600);
+}
+function stopPolling(){ if(polling){ clearInterval(polling); polling=null; } }
+
+const FALLBACK_HINT = ' Bitte Internetverbindung prüfen und nochmal versuchen.';
+
+async function createRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  myName = name;
+  local.busy = true; render();
+  let code, existing;
+  for(let i=0;i<8;i++){
+    code = randCode();
+    existing = await loadRoom(code);
+    if(!existing) break;
+  }
+  const newRoom = { code, hostId: myId, players: [{id:myId, name:myName}], game:null, activePlayers:[], state:null, createdAt: Date.now() };
+  const ok = await saveRoom(newRoom);
+  local.busy = false;
+  if(!ok){ local.error='Raum konnte nicht erstellt werden.' + FALLBACK_HINT; render(); return; }
+  room = newRoom; local.code = code; local.screen='lobby';
+  startPolling(); render();
+}
+
+async function joinRoom(){
+  local.error='';
+  const name = local.nameInput.trim();
+  const code = local.joinCodeInput.trim().toUpperCase();
+  if(!name){ local.error='Bitte gib deinen Namen ein.'; render(); return; }
+  if(!code || code.length<4){ local.error='Bitte gib einen gültigen Raumcode ein.'; render(); return; }
+  myName = name;
+  local.busy = true; render();
+  const r = await loadRoom(code);
+  local.busy = false;
+  if(!r){ local.error='Diesen Raum gibt es nicht.' + FALLBACK_HINT; render(); return; }
+  if(r.players.length>=10 && !r.players.find(p=>p.id===myId)){ local.error='Der Raum ist voll (max. 10 Teilnehmer).'; render(); return; }
+  if(!r.players.find(p=>p.id===myId)){
+    r.players.push({id:myId, name:myName});
+    const ok = await saveRoom(r);
+    if(!ok){ local.error='Beitreten fehlgeschlagen.' + FALLBACK_HINT; render(); return; }
+  }
+  room = r; local.code = code; local.screen='lobby';
+  startPolling(); render();
+}
+
+function leaveToLanding(){
+  stopPolling();
+  room=null; local = {screen:'landing', code:'', error:'', joinCodeInput:'', nameInput:myName, pickA:null, pickB:null, busy:false};
+  render();
+}
+async function refreshRoom(){
+  const r = await loadRoom(local.code);
+  if(r){ room = r; }
+  return room;
+}
+function isHost(){ return room && room.hostId===myId; }
+
+const ALL_PLAYERS_GAMES = ['kniffel','skipbo'];
+
+async function selectGame(g){
+  if(!isHost()) return;
+  const r = await refreshRoom();
+  r.game = g;
+  r.activePlayers = ALL_PLAYERS_GAMES.includes(g) ? r.players.map(p=>p.id) : [];
+  r.state = null;
+  await saveRoom(r); room=r; local.pickA=null; local.pickB=null; render();
+}
+function pickPlayer(slot, pid){
+  if(!isHost()) return;
+  if(slot==='a') local.pickA = (local.pickA===pid) ? null : pid;
+  if(slot==='b') local.pickB = (local.pickB===pid) ? null : pid;
+  render();
+}
+async function startMatch(){
+  if(!isHost()) return;
+  if(!local.pickA || !local.pickB || local.pickA===local.pickB){ return; }
+  const r = await refreshRoom();
+  r.activePlayers = [local.pickA, local.pickB];
+  r.state = initGameState(r.game, r.activePlayers);
+  await saveRoom(r); room=r; local.screen='game'; render();
+}
+async function startAllPlayersGame(gameKey){
+  if(!isHost()) return;
+  const r = await refreshRoom();
+  if(r.players.length<1) return;
+  r.activePlayers = r.players.map(p=>p.id);
+  r.state = initGameState(gameKey, r.activePlayers);
+  await saveRoom(r); room=r; local.screen='game'; render();
+}
+async function backToLobby(){
+  if(isHost()){
+    const r = await refreshRoom();
+    r.game=null; r.state=null; r.activePlayers=[];
+    await saveRoom(r); room=r;
+  }
+  local.screen='lobby'; local.pickA=null; local.pickB=null; render();
+}
+
+// ---------- game state init ----------
+function initGameState(game, active){
+  if(game==='ttt') return { board:Array(9).fill(''), turn:0, winner:'' };
+  if(game==='c4') return { board:Array.from({length:6},()=>Array(7).fill('')), turn:0, winner:'' };
+  if(game==='scrabble'){
+    const bag = scrabbleFreshBag();
+    const players = {};
+    active.forEach(pid=>{ players[pid] = { rack: bag.splice(bag.length-7,7), score:0 }; });
+    return { turn:0, board:scrabbleEmptyBoard(), bag, players, passCount:0, winner:'' };
+  }
+  if(game==='kniffel'){
+    const scores = {};
+    active.forEach(pid=>{ scores[pid]={}; KNIFFEL_CATS.forEach(c=> scores[pid][c.key]=''); });
+    return { order:active, turn:0, dice:[1,1,1,1,1], held:[false,false,false,false,false], rollsLeft:3, scores, finished:false, rolledOnce:false };
+  }
+  if(game==='muehle'){
+    const toPlace = {}; active.forEach(pid=> toPlace[pid]=9);
+    return { board:Array(24).fill(''), phase:'placing', toPlace, turn:0, selected:-1, mustRemove:'', winner:'' };
+  }
+  if(game==='skipbo'){
+    const drawPile = skipboFreshDeck();
+    const players = {};
+    active.forEach(pid=>{
+      const stock=[]; for(let i=0;i<15;i++) stock.push(drawPile.pop());
+      const hand=[]; for(let i=0;i<5;i++) hand.push(drawPile.pop());
+      players[pid] = { stock, hand, discards:['','','',''] };
+    });
+    return { order:active, turn:0, drawPile, players, buildPiles:[1,1,1,1], winner:'' };
+  }
+  return null;
+}
+
+// ---------- Tic Tac Toe ----------
+function tttWinner(board){
+  const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for(const [a,b,c] of lines){ if(board[a] && board[a]===board[b] && board[b]===board[c]) return board[a]; }
+  if(board.every(x=>x)) return 'draw';
+  return null;
+}
+async function tttClick(i){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  if(r.activePlayers[s.turn]!==myId) return;
+  if(s.board[i]) return;
+  s.board[i] = myId;
+  const w = tttWinner(s.board);
+  if(w) s.winner = w; else s.turn = 1-s.turn;
+  await saveRoom(r); room=r; render();
+}
+
+// ---------- Connect4 ----------
+function c4Winner(board){
+  const rows=6, cols=7; const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const v=board[r][c]; if(!v) continue;
+    for(const [dr,dc] of dirs){
+      let ok=true;
+      for(let k=1;k<4;k++){
+        const nr=r+dr*k, nc=c+dc*k;
+        if(nr<0||nr>=rows||nc<0||nc>=cols||board[nr][nc]!==v){ ok=false; break; }
+      }
+      if(ok) return v;
+    }
+  }
+  if(board.every(row=>row.every(x=>x))) return 'draw';
+  return null;
+}
+async function c4Click(col){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  if(r.activePlayers[s.turn]!==myId) return;
+  let placedRow=-1;
+  for(let row=5; row>=0; row--){ if(!s.board[row][col]){ s.board[row][col]=myId; placedRow=row; break; } }
+  if(placedRow===-1) return;
+  const w = c4Winner(s.board);
+  if(w) s.winner=w; else s.turn = 1-s.turn;
+  await saveRoom(r); room=r; render();
+}
+
+// ---------- Scrabble (vereinfacht: kein Wörterbuch, nur Hauptwort-Linie wird gewertet) ----------
+const SCRABBLE_BONUS = (() => {
+  const g = Array.from({length:15}, ()=>Array(15).fill(''));
+  const TW=[[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]];
+  const DW=[[1,1],[2,2],[3,3],[4,4],[10,10],[11,11],[12,12],[13,13],[1,13],[2,12],[3,11],[4,10],[13,1],[12,2],[11,3],[10,4]];
+  const TL=[[1,5],[1,9],[5,1],[5,5],[5,9],[5,13],[9,1],[9,5],[9,9],[9,13],[13,5],[13,9]];
+  const DL=[[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,6],[6,8],[6,12],[7,3],[7,11],[8,2],[8,6],[8,8],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]];
+  TW.forEach(([y,x])=>g[y][x]='TW'); DW.forEach(([y,x])=>g[y][x]='DW');
+  TL.forEach(([y,x])=>g[y][x]='TL'); DL.forEach(([y,x])=>g[y][x]='DL');
+  g[7][7] = 'DW';
+  return g;
+})();
+const SCRABBLE_LETTER_POINTS = {A:1,B:3,C:4,D:1,E:1,F:4,G:2,H:2,I:1,J:6,K:4,L:2,M:3,N:1,O:2,P:4,Q:10,R:1,S:1,T:1,U:1,V:6,W:3,X:8,Y:10,Z:3,Ä:6,Ö:8,Ü:6,'?':0};
+function scrabbleFreshBag(){
+  const dist = {E:15,N:9,S:7,I:6,R:6,T:6,U:6,A:5,D:4,H:4,G:3,L:3,O:3,M:4,B:2,W:1,Z:1,C:2,F:2,K:2,P:1,Ä:1,J:1,Ü:1,V:1,Y:1,Ö:1,X:1,Q:1,'?':2};
+  const bag=[];
+  Object.entries(dist).forEach(([letter,count])=>{ for(let i=0;i<count;i++) bag.push(letter); });
+  for(let i=bag.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=bag[i]; bag[i]=bag[j]; bag[j]=t; }
+  return bag;
+}
+function scrabbleEmptyBoard(){ return Array.from({length:15}, ()=>Array(15).fill('')); }
+function scrabbleDraw(s, n){
+  const drawn=[];
+  for(let i=0;i<n;i++){
+    if((s.bag||[]).length===0) break;
+    drawn.push(s.bag.pop());
+  }
+  return drawn;
+}
+function scrabbleValidate(board, pending){
+  if(pending.length===0) return {valid:false, reason:'Keine Buchstaben gelegt.'};
+  const xs = pending.map(p=>p.x), ys = pending.map(p=>p.y);
+  const sameRow = ys.every(y=>y===ys[0]);
+  const sameCol = xs.every(x=>x===xs[0]);
+  if(!sameRow && !sameCol) return {valid:false, reason:'Buchstaben müssen in einer Reihe oder Spalte liegen.'};
+  const dir = sameRow ? 'row' : 'col';
+  const fixed = sameRow ? ys[0] : xs[0];
+  const vals = sameRow ? xs : ys;
+  let minV = Math.min(...vals), maxV = Math.max(...vals);
+  function cellAt(x,y){
+    const pend = pending.find(p=>p.x===x&&p.y===y);
+    if(pend) return {letter:pend.letter, points:pend.points};
+    const b = board[y][x];
+    return b ? {letter:b.letter, points:b.points} : null;
+  }
+  for(let v=minV; v<=maxV; v++){
+    const x = dir==='row'? v : fixed, y = dir==='row'? fixed : v;
+    if(!cellAt(x,y)) return {valid:false, reason:'Lücke in der gelegten Reihe.'};
+  }
+  let startV=minV, endV=maxV;
+  while(true){ const x=dir==='row'?startV-1:fixed, y=dir==='row'?fixed:startV-1; if(x>=0&&y>=0&&cellAt(x,y)) startV--; else break; }
+  while(true){ const x=dir==='row'?endV+1:fixed, y=dir==='row'?fixed:endV+1; if(x<15&&y<15&&cellAt(x,y)) endV++; else break; }
+  const isFirstMove = board.every(row=>row.every(c=>!c));
+  if(isFirstMove){
+    if(!pending.some(p=>p.x===7&&p.y===7)) return {valid:false, reason:'Der erste Zug muss über das Sternfeld (Mitte) gehen.'};
+  } else {
+    const extendedBeyondOwnTiles = (endV-startV+1) > pending.length;
+    const touchesAdjacent = pending.some(p=>{
+      const neigh = [[p.x-1,p.y],[p.x+1,p.y],[p.x,p.y-1],[p.x,p.y+1]];
+      return neigh.some(([nx,ny])=> nx>=0&&nx<15&&ny>=0&&ny<15 && board[ny][nx]);
+    });
+    if(!extendedBeyondOwnTiles && !touchesAdjacent) return {valid:false, reason:'Wort muss an ein bestehendes Wort anschließen.'};
+  }
+  const wordCells=[];
+  for(let v=startV; v<=endV; v++){
+    const x = dir==='row'? v : fixed, y = dir==='row'? fixed : v;
+    wordCells.push({x,y, ...cellAt(x,y)});
+  }
+  return {valid:true, wordCells};
+}
+function scrabbleScore(wordCells, pending){
+  let wordMultiplier=1, sum=0;
+  wordCells.forEach(c=>{
+    const isNew = pending.some(p=>p.x===c.x && p.y===c.y);
+    let letterPts = c.points;
+    if(isNew){
+      const bonus = SCRABBLE_BONUS[c.y][c.x];
+      if(bonus==='DL') letterPts*=2;
+      if(bonus==='TL') letterPts*=3;
+      if(bonus==='DW') wordMultiplier*=2;
+      if(bonus==='TW') wordMultiplier*=3;
+    }
+    sum += letterPts;
+  });
+  let total = sum*wordMultiplier;
+  if(pending.length===7) total += 50;
+  return total;
+}
+async function scrabbleConfirm(){
+  const pending = local.scrPending || [];
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = r.activePlayers[s.turn];
+  if(cur!==myId) return;
+  const res = scrabbleValidate(s.board, pending);
+  if(!res.valid){ local.error = res.reason; render(); return; }
+  const pts = scrabbleScore(res.wordCells, pending);
+  pending.forEach(p=>{ s.board[p.y][p.x] = {letter:p.letter, points:p.points}; });
+  const p = s.players[cur];
+  pending.forEach(p2=>{ const idx=p.rack.indexOf(p2.fromLetter); if(idx>=0) p.rack.splice(idx,1); });
+  p.score = (p.score||0) + pts;
+  const drawn = scrabbleDraw(s, 7-p.rack.length);
+  p.rack.push(...drawn);
+  s.turn = 1 - s.turn;
+  s.passCount = 0;
+  local.scrPending = []; local.scrSelectedRackIdx = -1; local.error='';
+  if((p.rack||[]).length===0 && (s.bag||[]).length===0){ s.winner = cur; }
+  await saveRoom(r); room=r; render();
+}
+async function scrabblePass(){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = r.activePlayers[s.turn];
+  if(cur!==myId) return;
+  local.scrPending = []; local.scrSelectedRackIdx = -1; local.error='';
+  s.turn = 1 - s.turn;
+  s.passCount = (s.passCount||0) + 1;
+  if(s.passCount >= 4){ s.winner = 'draw'; }
+  await saveRoom(r); room=r; render();
+}
+function scrabblePickRack(idx){
+  if((local.scrPending||[]).some(p=>p.rackIdx===idx)) return;
+  local.scrSelectedRackIdx = (local.scrSelectedRackIdx===idx) ? -1 : idx;
+  render();
+}
+function scrabblePlaceAt(x,y){
+  if(local.scrSelectedRackIdx===-1) return;
+  if((local.scrPending||[]).some(p=>p.rackIdx===local.scrSelectedRackIdx)) { local.scrSelectedRackIdx=-1; return; }
+  if(!room.state.board[y][x] && !(local.scrPending||[]).some(p=>p.x===x&&p.y===y)){
+    const me = room.state.players[myId];
+    const rackIdx = local.scrSelectedRackIdx;
+    const letter = me.rack[rackIdx];
+    if(letter===undefined) return;
+    let actualLetter = letter;
+    if(letter==='?'){
+      const chosen = prompt('Welcher Buchstabe soll der Joker sein?');
+      if(!chosen) return;
+      actualLetter = chosen.trim().toUpperCase().slice(0,1) || 'A';
+    }
+    local.scrPending = local.scrPending || [];
+    local.scrPending.push({x,y, letter:actualLetter, points:SCRABBLE_LETTER_POINTS[letter]||0, fromLetter:letter, rackIdx});
+    local.scrSelectedRackIdx = -1;
+    render();
+  } else {
+    const idx = (local.scrPending||[]).findIndex(p=>p.x===x&&p.y===y);
+    if(idx>=0){ local.scrPending.splice(idx,1); render(); }
+  }
+}
+
+// ---------- Kniffel ----------
+const KNIFFEL_CATS = [
+  {key:'ones', label:'Einser'}, {key:'twos', label:'Zweier'}, {key:'threes', label:'Dreier'},
+  {key:'fours', label:'Vierer'}, {key:'fives', label:'Fünfer'}, {key:'sixes', label:'Sechser'},
+  {key:'threeKind', label:'Dreierpasch'}, {key:'fourKind', label:'Viererpasch'},
+  {key:'fullHouse', label:'Full House'}, {key:'smallStraight', label:'Kl. Straße'},
+  {key:'largeStraight', label:'Gr. Straße'}, {key:'kniffel', label:'Kniffel'}, {key:'chance', label:'Chance'}
+];
+function kCounts(dice){ const c=[0,0,0,0,0,0,0]; dice.forEach(d=>c[d]++); return c; }
+function kSumOf(dice,n){ return dice.filter(d=>d===n).reduce((a,b)=>a+b,0); }
+function kScore(cat, dice){
+  const c = kCounts(dice); const sum = dice.reduce((a,b)=>a+b,0);
+  switch(cat){
+    case 'ones': return kSumOf(dice,1); case 'twos': return kSumOf(dice,2); case 'threes': return kSumOf(dice,3);
+    case 'fours': return kSumOf(dice,4); case 'fives': return kSumOf(dice,5); case 'sixes': return kSumOf(dice,6);
+    case 'threeKind': return c.some(x=>x>=3) ? sum : 0;
+    case 'fourKind': return c.some(x=>x>=4) ? sum : 0;
+    case 'fullHouse': return (c.includes(3) && c.includes(2)) ? 25 : 0;
+    case 'smallStraight': { const s = new Set(dice); const seqs=[[1,2,3,4],[2,3,4,5],[3,4,5,6]]; return seqs.some(seq=>seq.every(n=>s.has(n))) ? 30 : 0; }
+    case 'largeStraight': { const s=[...dice].sort().join(','); return (s==='1,2,3,4,5'||s==='2,3,4,5,6') ? 40 : 0; }
+    case 'kniffel': return c.some(x=>x>=5) ? 50 : 0;
+    case 'chance': return sum;
+  }
+}
+function kTotal(scores){
+  let upper=0, lower=0;
+  ['ones','twos','threes','fours','fives','sixes'].forEach(k=>{ upper += scores[k]||0; });
+  const bonus = upper>=63 ? 35 : 0;
+  ['threeKind','fourKind','fullHouse','smallStraight','largeStraight','kniffel','chance'].forEach(k=>{ lower += scores[k]||0; });
+  return upper+bonus+lower;
+}
+async function kniffelRoll(){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.finished) return;
+  if(s.order[s.turn]!==myId) return;
+  if(s.rollsLeft<=0) return;
+  s.dice = s.dice.map((d,i)=> s.held[i] ? d : (1+Math.floor(Math.random()*6)));
+  s.rollsLeft -= 1; s.rolledOnce = true;
+  await saveRoom(r); room=r; render();
+}
+async function kniffelHold(i){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.order[s.turn]!==myId) return;
+  if(!s.rolledOnce) return;
+  s.held[i] = !s.held[i];
+  await saveRoom(r); room=r; render();
+}
+async function kniffelScore(cat){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.finished) return;
+  if(s.order[s.turn]!==myId) return;
+  if(!s.rolledOnce) return;
+  if(s.scores[myId][cat]!=='') return;
+  s.scores[myId][cat] = kScore(cat, s.dice);
+  s.dice=[1,1,1,1,1]; s.held=[false,false,false,false,false]; s.rollsLeft=3; s.rolledOnce=false;
+  const nextTurn = (s.turn+1) % s.order.length;
+  const allDone = s.order.every(pid => KNIFFEL_CATS.every(c => s.scores[pid][c.key]!==''));
+  if(allDone){ s.finished = true; } else { s.turn = nextTurn; }
+  await saveRoom(r); room=r; render();
+}
+
+// ---------- Mühle (Nine Men's Morris) ----------
+const MUEHLE_ADJ = {
+  0:[1,9], 1:[0,2,4], 2:[1,14],
+  3:[4,10], 4:[1,3,5,7], 5:[4,13],
+  6:[7,11], 7:[4,6,8], 8:[7,12],
+  9:[0,10,21], 10:[3,9,11,18], 11:[6,10,15],
+  12:[8,13,17], 13:[5,12,14,20], 14:[2,13,23],
+  15:[11,16], 16:[15,17,19], 17:[12,16],
+  18:[10,19], 19:[16,18,20,22], 20:[13,19],
+  21:[9,22], 22:[19,21,23], 23:[14,22]
+};
+const MUEHLE_MILLS = [
+  [0,1,2],[3,4,5],[6,7,8],[9,10,11],[12,13,14],[15,16,17],[18,19,20],[21,22,23],
+  [0,9,21],[3,10,18],[6,11,15],[1,4,7],[16,19,22],[8,12,17],[5,13,20],[2,14,23]
+];
+const MUEHLE_COORDS = [
+  [0,0],[3,0],[6,0], [1,1],[3,1],[5,1], [2,2],[3,2],[4,2],
+  [0,3],[1,3],[2,3], [4,3],[5,3],[6,3], [2,4],[3,4],[4,4],
+  [1,5],[3,5],[5,5], [0,6],[3,6],[6,6]
+];
+function muehlePieceInMill(board, idx, pid){ return MUEHLE_MILLS.some(m=>m.includes(idx) && m.every(j=>board[j]===pid)); }
+function muehleOpponentIndices(board, pid){ return board.map((v,i)=>v===pid?i:-1).filter(i=>i>=0); }
+function muehleCanRemove(board, idx, oppPid){
+  if(board[idx]!==oppPid) return false;
+  if(!muehlePieceInMill(board, idx, oppPid)) return true;
+  const all = muehleOpponentIndices(board, oppPid);
+  return all.every(i=>muehlePieceInMill(board,i,oppPid));
+}
+function muehleCountPieces(board, pid){ return board.filter(v=>v===pid).length; }
+async function muehleClick(idx){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = r.activePlayers[s.turn];
+  if(cur!==myId) return;
+
+  if(s.mustRemove){
+    const opp = r.activePlayers.find(p=>p!==cur);
+    if(!muehleCanRemove(s.board, idx, opp)) return;
+    s.board[idx] = '';
+    s.mustRemove = '';
+    if(muehleCountPieces(s.board, opp) < 3 && s.phase==='moving'){
+      s.winner = cur;
+    } else {
+      s.turn = 1 - s.turn;
+    }
+    await saveRoom(r); room=r; render();
+    return;
+  }
+
+  if(s.phase==='placing'){
+    if(s.board[idx]!=='') return;
+    if((s.toPlace[cur]||0)<=0) return;
+    s.board[idx] = cur;
+    s.toPlace[cur] -= 1;
+    const formedMill = muehlePieceInMill(s.board, idx, cur);
+    const donePlacing = r.activePlayers.every(p => (s.toPlace[p]||0)<=0);
+    if(donePlacing) s.phase = 'moving';
+    if(formedMill){ s.mustRemove = cur; }
+    else { s.turn = 1 - s.turn; }
+    await saveRoom(r); room=r; render();
+    return;
+  }
+
+  if(s.phase==='moving'){
+    const flying = muehleCountPieces(s.board, cur) === 3;
+    if(s.selected===-1){
+      if(s.board[idx]===cur) s.selected = idx;
+      await saveRoom(r); room=r; render();
+      return;
+    }
+    if(s.board[idx]===cur){ s.selected = idx; await saveRoom(r); room=r; render(); return; }
+    if(s.board[idx]!=='') { return; }
+    const from = s.selected;
+    const canMove = flying || MUEHLE_ADJ[from].includes(idx);
+    if(!canMove) return;
+    s.board[idx] = cur; s.board[from] = ''; s.selected = -1;
+    const formedMill = muehlePieceInMill(s.board, idx, cur);
+    if(formedMill){ s.mustRemove = cur; }
+    else { s.turn = 1 - s.turn; }
+    await saveRoom(r); room=r; render();
+  }
+}
+
+// ---------- rendering ----------
+const app = document.getElementById('app');
+function render(){
+  if(local.screen==='landing') return renderLanding();
+  if(local.screen==='lobby') return renderLobby();
+  if(local.screen==='game') return renderGame();
+  if(local.screen==='tetris') return renderTetris();
+  if(local.screen==='mahjong') return renderMahjong();
+}
+
+function renderLanding(){
+  const busy = !!local.busy;
+  app.innerHTML = `
+    <div class="title">🎲 Spieleabend</div>
+    <div class="subtitle">Spiele mit bis zu 10 Leuten – jeder auf seinem eigenen Handy</div>
+    <div class="card">
+      <label for="nameInput">Dein Name</label>
+      <input id="nameInput" type="text" maxlength="18" placeholder="z.B. Alex" value="${esc(local.nameInput)}">
+      <button class="primary" id="btnCreate" ${busy?'disabled':''}>${busy?'Bitte warten…':'Neuen Raum erstellen'}</button>
+    </div>
+    <div class="card">
+      <label for="codeInput">Raumcode eingeben</label>
+      <input id="codeInput" type="text" class="code-input" maxlength="4" placeholder="ABCD" value="${esc(local.joinCodeInput)}">
+      <button class="secondary" id="btnJoin" ${busy?'disabled':''}>${busy?'Bitte warten…':'Raum beitreten'}</button>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px;">Allein spielen</h3>
+      <button class="secondary" id="btnTetris">🧩 Tetris starten</button>
+      <button class="secondary" id="btnMahjong">🀄 Mahjong Solitaire starten</button>
+    </div>
+    ${local.error ? `<div class="error">${esc(local.error)}</div>` : ''}
+    <p class="small-note">Build: 2026-08-17-v6</p>
+  `;
+  document.getElementById('nameInput').addEventListener('input', e=>{ local.nameInput = e.target.value; });
+  document.getElementById('codeInput').addEventListener('input', e=>{ local.joinCodeInput = e.target.value.toUpperCase(); });
+  document.getElementById('btnCreate').addEventListener('click', createRoom);
+  document.getElementById('btnJoin').addEventListener('click', joinRoom);
+  document.getElementById('btnTetris').addEventListener('click', tetrisStart);
+  document.getElementById('btnMahjong').addEventListener('click', mahjongStart);
+}
+
+const GAME_META = {
+  ttt: {label:'Tic Tac Toe', emoji:'⭕'}, c4: {label:'4 Gewinnt', emoji:'🔴'},
+  scrabble: {label:'Scrabble', emoji:'🔤'}, kniffel: {label:'Kniffel', emoji:'🎲'},
+  muehle: {label:'Mühle', emoji:'⚪'}, skipbo: {label:'Skip-Bo', emoji:'🃏'}
+};
+
+function renderLobby(){
+  const players = room.players;
+  const host = players.find(p=>p.id===room.hostId);
+  let html = `
+    <div class="code-display">${room.code}</div>
+    <div class="hint">Teile diesen Code – jeder öffnet die Datei und tritt bei</div>
+    <div class="card">
+      <h3>Mitspieler (${players.length}/10)</h3>
+      <ul class="players-list">
+        ${players.map(p=>`<li><span>${esc(p.name)}</span><span>${p.id===room.hostId?'<span class="host-tag">Host</span>':''} ${p.id===myId?'<span class="you-tag">Du</span>':''}</span></li>`).join('')}
+      </ul>
+    </div>
+  `;
+  if(isHost()){
+    html += `<div class="card">
+      <h3>Spiel auswählen</h3>
+      <div class="game-grid">
+        ${Object.entries(GAME_META).map(([key,m])=>`
+          <div class="game-btn ${room.game===key?'active':''}" data-game="${key}">
+            <span class="emoji">${m.emoji}</span>${m.label}
+          </div>`).join('')}
+      </div>
+    </div>`;
+    if(room.game==='ttt' || room.game==='c4' || room.game==='scrabble' || room.game==='muehle'){
+      html += `<div class="card">
+        <h3>Spieler auswählen</h3>
+        <div style="margin-bottom:10px;">
+          <label>Spieler 1</label>
+          <div class="pick-list">${players.map(p=>`<div class="pick-chip ${local.pickA===p.id?'selected':''}" data-pick="a" data-pid="${p.id}">${esc(p.name)}</div>`).join('')}</div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label>Spieler 2</label>
+          <div class="pick-list">${players.map(p=>`<div class="pick-chip ${local.pickB===p.id?'selected':''}" data-pick="b" data-pid="${p.id}">${esc(p.name)}</div>`).join('')}</div>
+        </div>
+        <button class="primary" id="btnStartMatch" ${(!local.pickA||!local.pickB||local.pickA===local.pickB)?'disabled':''}>Spiel starten</button>
+      </div>`;
+    }
+    if(room.game==='kniffel'){
+      html += `<div class="card">
+        <p style="color:var(--chalk-dim); font-size:14px; margin-top:0;">Kniffel spielen alle ${players.length} Mitspieler zusammen, reihum.</p>
+        <button class="primary" id="btnStartKniffel" ${players.length<1?'disabled':''}>Kniffel starten</button>
+      </div>`;
+    }
+    if(room.game==='skipbo'){
+      html += `<div class="card">
+        <p style="color:var(--chalk-dim); font-size:14px; margin-top:0;">Skip-Bo spielen alle ${players.length} Mitspieler zusammen, reihum. (Vereinfachte Version: fester Nachziehstapel, 15 Karten Stapel pro Person.)</p>
+        <button class="primary" id="btnStartSkipbo" ${players.length<1?'disabled':''}>Skip-Bo starten</button>
+      </div>`;
+    }
+  } else {
+    html += `<div class="card center">
+      <p style="color:var(--chalk-dim); margin:0;">Warte, bis der Host <b>${esc(host?host.name:'')}</b> ein Spiel startet…</p>
+      ${room.game? `<p style="margin-top:10px; color:var(--yellow); font-weight:700;">${GAME_META[room.game]?.label || ''} wird vorbereitet…</p>`:''}
+    </div>`;
+  }
+  html += `<div class="foot-nav"><button class="secondary" id="btnLeave">Raum verlassen</button></div>`;
+  app.innerHTML = html;
+  document.getElementById('btnLeave').addEventListener('click', leaveToLanding);
+  if(isHost()){
+    app.querySelectorAll('[data-game]').forEach(el=> el.addEventListener('click', ()=> selectGame(el.dataset.game)));
+    app.querySelectorAll('[data-pick]').forEach(el=> el.addEventListener('click', ()=> pickPlayer(el.dataset.pick, el.dataset.pid)));
+    const bm = document.getElementById('btnStartMatch'); if(bm) bm.addEventListener('click', startMatch);
+    const bk = document.getElementById('btnStartKniffel'); if(bk) bk.addEventListener('click', ()=>startAllPlayersGame('kniffel'));
+    const bs = document.getElementById('btnStartSkipbo'); if(bs) bs.addEventListener('click', ()=>startAllPlayersGame('skipbo'));
+  }
+  if(room.game && room.state && (room.activePlayers.includes(myId) || ALL_PLAYERS_GAMES.includes(room.game))){
+    local.screen='game'; render(); return;
+  }
+}
+
+function nameOf(pid){ const p = room.players.find(x=>x.id===pid); return p ? p.name : '?'; }
+
+function renderGame(){
+  if(!room.game || !room.state){ local.screen='lobby'; render(); return; }
+  if(room.game==='ttt') return renderTTT();
+  if(room.game==='c4') return renderC4();
+  if(room.game==='scrabble') return renderScrabble();
+  if(room.game==='kniffel') return renderKniffel();
+  if(room.game==='muehle') return renderMuehle();
+  if(room.game==='skipbo') return renderSkipbo();
+}
+function statusHtml(text, win){ return `<div class="status-bar ${win?'win':''}">${text}</div>`; }
+
+function renderTTT(){
+  const s = room.state;
+  const iAmSpectator = !room.activePlayers.includes(myId);
+  let status;
+  if(s.winner==='draw') status = statusHtml('🤝 Unentschieden!', true);
+  else if(s.winner) status = statusHtml(`🎉 ${esc(nameOf(s.winner))} gewinnt!`, true);
+  else if(iAmSpectator) status = statusHtml(`${esc(nameOf(room.activePlayers[s.turn]))} ist am Zug`);
+  else status = statusHtml(room.activePlayers[s.turn]===myId ? 'Du bist am Zug!' : `${esc(nameOf(room.activePlayers[s.turn]))} ist am Zug…`);
+  const marks = { [room.activePlayers[0]]:'x', [room.activePlayers[1]]:'o' };
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:14px;">⭕ Tic Tac Toe</h2>
+    <p class="center small-note" style="margin-top:-6px;">${esc(nameOf(room.activePlayers[0]))} (X) vs ${esc(nameOf(room.activePlayers[1]))} (O)</p>
+    ${status}
+    <div class="ttt-grid">${s.board.map((v,i)=>`<div class="ttt-cell ${v?marks[v]:''}" data-i="${i}">${v ? (marks[v]==='x'?'✕':'◯') : ''}</div>`).join('')}</div>
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+  if(!s.winner && !iAmSpectator) app.querySelectorAll('.ttt-cell').forEach(el=> el.addEventListener('click', ()=> tttClick(parseInt(el.dataset.i))));
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+
+function renderC4(){
+  const s = room.state;
+  const iAmSpectator = !room.activePlayers.includes(myId);
+  let status;
+  if(s.winner==='draw') status = statusHtml('🤝 Unentschieden!', true);
+  else if(s.winner) status = statusHtml(`🎉 ${esc(nameOf(s.winner))} gewinnt!`, true);
+  else status = statusHtml(iAmSpectator ? `${esc(nameOf(room.activePlayers[s.turn]))} ist am Zug` : (room.activePlayers[s.turn]===myId ? 'Du bist am Zug!' : `${esc(nameOf(room.activePlayers[s.turn]))} ist am Zug…`));
+  const cls = { [room.activePlayers[0]]:'p0', [room.activePlayers[1]]:'p1' };
+  let cols = '';
+  for(let c=0;c<7;c++){
+    let cells='';
+    for(let r=0;r<6;r++){ const v = s.board[r][c]; cells += `<div class="c4-cell ${v?cls[v]:''}"></div>`; }
+    cols += `<div class="c4-col" data-c="${c}">${cells}</div>`;
+  }
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:14px;">🔴 4 Gewinnt</h2>
+    <p class="center small-note" style="margin-top:-6px;">🔴 ${esc(nameOf(room.activePlayers[0]))} vs 🟡 ${esc(nameOf(room.activePlayers[1]))}</p>
+    ${status}
+    <div class="c4-board">${cols}</div>
+    <div class="c4-collabel">Auf eine Spalte tippen, um einzuwerfen</div>
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+  if(!s.winner && !iAmSpectator) app.querySelectorAll('.c4-col').forEach(el=> el.addEventListener('click', ()=> c4Click(parseInt(el.dataset.c))));
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+
+function renderScrabble(){
+  const s = room.state;
+  const iAmPlayer = room.activePlayers.includes(myId);
+  const curPid = room.activePlayers[s.turn];
+  const myTurn = iAmPlayer && curPid===myId && !s.winner;
+  const me = s.players[myId] || {rack:[], score:0};
+  const opp = room.activePlayers.find(p=>p!==myId);
+  const oppP = s.players[opp] || {rack:[], score:0};
+
+  let status;
+  if(s.winner==='draw') status = statusHtml('🤝 Spiel beendet (zu viele Pässe)', true);
+  else if(s.winner) status = statusHtml(`🎉 ${esc(nameOf(s.winner))} gewinnt!`, true);
+  else if(!iAmPlayer) status = statusHtml(`${esc(nameOf(curPid))} ist am Zug`);
+  else status = statusHtml(myTurn ? 'Du bist am Zug!' : `${esc(nameOf(curPid))} ist am Zug…`);
+
+  const pending = local.scrPending || [];
+  let boardHtml = '';
+  for(let y=0;y<15;y++){
+    for(let x=0;x<15;x++){
+      const cell = s.board[y][x];
+      const pend = pending.find(p=>p.x===x&&p.y===y);
+      const bonus = SCRABBLE_BONUS[y][x];
+      let cls='scr-cell'; let content='';
+      if(cell){ cls+=' scr-filled'; content=cell.letter; }
+      else if(pend){ cls+=' scr-pending'; content=pend.letter; }
+      else if(bonus){ cls+=' scr-'+bonus.toLowerCase(); content = x===7&&y===7 ? '★' : bonus; }
+      boardHtml += `<div class="${cls}" data-x="${x}" data-y="${y}">${content}</div>`;
+    }
+  }
+
+  const rackHtml = (me.rack||[]).map((l,i)=>{
+    const sel = local.scrSelectedRackIdx===i;
+    const used = pending.some(p=>p.rackIdx===i);
+    return `<div class="sb-card ${sel?'sb-selected':''} ${used?'sb-empty':''}" ${used?'':`data-rackidx="${i}"`}>${used?'':(l==='?'?'★':l)}</div>`;
+  }).join('') || '<span class="small-note">Leer</span>';
+
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:6px;">🔤 Scrabble</h2>
+    <p class="center small-note" style="margin-top:0;">${esc(nameOf(room.activePlayers[0]))}: ${s.players[room.activePlayers[0]].score||0} &middot; ${esc(nameOf(room.activePlayers[1]))}: ${s.players[room.activePlayers[1]].score||0} &middot; Beutel: ${(s.bag||[]).length}</p>
+    ${status}
+    ${local.error ? `<div class="error center">${esc(local.error)}</div>` : ''}
+    <div class="scr-board">${boardHtml}</div>
+    <p class="small-note">Kachel aus deiner Hand antippen, dann Feld auf dem Brett antippen. Gelegte Kachel nochmal antippen, um sie zurückzunehmen.</p>
+    <div class="sb-mine" style="margin-top:10px;">
+      <div class="sb-row"><span class="sb-row-label">Deine Hand</span>${rackHtml}</div>
+    </div>
+    ${myTurn ? `
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="btnScrConfirm">Wort bestätigen</button>
+        <button class="secondary" id="btnScrPass">Passen</button>
+      </div>` : ''}
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+  if(myTurn){
+    app.querySelectorAll('[data-rackidx]').forEach(el=> el.addEventListener('click', ()=> scrabblePickRack(parseInt(el.dataset.rackidx))));
+    app.querySelectorAll('[data-x]').forEach(el=> el.addEventListener('click', ()=> scrabblePlaceAt(parseInt(el.dataset.x), parseInt(el.dataset.y))));
+    const bc = document.getElementById('btnScrConfirm'); if(bc) bc.addEventListener('click', scrabbleConfirm);
+    const bp = document.getElementById('btnScrPass'); if(bp) bp.addEventListener('click', scrabblePass);
+  }
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+
+function renderKniffel(){
+  const s = room.state;
+  const myTurn = s.order[s.turn]===myId;
+  const currentName = nameOf(s.order[s.turn]);
+  let status;
+  if(s.finished){
+    let best=null, bestScore=-1;
+    s.order.forEach(pid=>{ const t=kTotal(s.scores[pid]); if(t>bestScore){bestScore=t;best=pid;} });
+    status = statusHtml(`🏆 ${esc(nameOf(best))} gewinnt mit ${bestScore} Punkten!`, true);
+  } else {
+    status = statusHtml(myTurn ? 'Du bist am Zug!' : `${esc(currentName)} ist am Zug…`);
+  }
+  const diceFaces = ['','⚀','⚁','⚂','⚃','⚄','⚅'];
+  const diceHtml = s.dice.map((d,i)=>`<div class="die ${s.held[i]?'held':''}" data-i="${i}">${diceFaces[d]}</div>`).join('');
+  const tableHead = `<tr><th style="text-align:left;">Kategorie</th>${s.order.map(pid=>`<th>${esc(nameOf(pid)).slice(0,6)}</th>`).join('')}</tr>`;
+  const rows = KNIFFEL_CATS.map(cat=>{
+    const cells = s.order.map(pid=>{
+      const val = s.scores[pid][cat.key];
+      const isMe = pid===myId;
+      const canFill = !s.finished && myTurn && isMe && val==='' && s.rolledOnce;
+      const suggestVal = canFill ? kScore(cat.key, s.dice) : null;
+      let cls='cell' + (val!==''?' filled':'') + (canFill?' suggest':'');
+      return `<td class="${cls}" ${canFill?`data-score="${cat.key}"`:''}>${val!==''?val:(canFill?suggestVal:'')}</td>`;
+    }).join('');
+    return `<tr>${`<td class="catname">${cat.label}</td>`}${cells}</tr>`;
+  }).join('');
+  const totalsRow = `<tr><td class="catname"><b>Summe</b></td>${s.order.map(pid=>`<td><b>${kTotal(s.scores[pid])}</b></td>`).join('')}</tr>`;
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:14px;">🎲 Kniffel</h2>
+    ${status}
+    <div class="dice-row">${diceHtml}</div>
+    <div class="center" style="margin-bottom:18px;">
+      <button class="primary" id="btnRoll" style="max-width:220px;" ${(!myTurn||s.finished||s.rollsLeft<=0)?'disabled':''}>🎲 Würfeln (${s.rollsLeft} übrig)</button>
+    </div>
+    <div class="card" style="overflow-x:auto;">
+      <table class="score-table"><thead>${tableHead}</thead><tbody>${rows}${totalsRow}</tbody></table>
+    </div>
+    <p class="small-note">Tippe Würfel an, um sie zu halten. Dein Wert erscheint gelb – tippe die Zeile an, um zu punkten.</p>
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+  const br = document.getElementById('btnRoll'); if(br) br.addEventListener('click', kniffelRoll);
+  if(myTurn && s.rolledOnce && !s.finished) app.querySelectorAll('.die').forEach(el=> el.addEventListener('click', ()=> kniffelHold(parseInt(el.dataset.i))));
+  app.querySelectorAll('[data-score]').forEach(el=> el.addEventListener('click', ()=> kniffelScore(el.dataset.score)));
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+
+function renderMuehle(){
+  const s = room.state;
+  const iAmSpectator = !room.activePlayers.includes(myId);
+  const curPid = room.activePlayers[s.turn];
+  const label = { [room.activePlayers[0]]:'⚫', [room.activePlayers[1]]:'⚪' };
+
+  let status;
+  if(s.winner) status = statusHtml(`🎉 ${esc(nameOf(s.winner))} gewinnt!`, true);
+  else if(s.mustRemove) status = statusHtml(`${esc(nameOf(s.mustRemove))} hat eine Mühle – gegnerischen Stein entfernen!`);
+  else if(iAmSpectator) status = statusHtml(`${esc(nameOf(curPid))} ist am Zug (${s.phase==='placing'?'setzen':'ziehen'})`);
+  else status = statusHtml(curPid===myId ? `Du bist am Zug (${s.phase==='placing'?'setzen':'ziehen'})` : `${esc(nameOf(curPid))} ist am Zug…`);
+
+  const SCALE = 40, PAD = 20;
+  const size = 6*SCALE + PAD*2;
+  let lines = '';
+  const seen = new Set();
+  for(const a in MUEHLE_ADJ){
+    for(const b of MUEHLE_ADJ[a]){
+      const key = [Math.min(a,b), Math.max(a,b)].join('-');
+      if(seen.has(key)) continue; seen.add(key);
+      const [x1,y1] = MUEHLE_COORDS[a], [x2,y2] = MUEHLE_COORDS[b];
+      lines += `<line x1="${x1*SCALE+PAD}" y1="${y1*SCALE+PAD}" x2="${x2*SCALE+PAD}" y2="${y2*SCALE+PAD}" stroke="var(--chalk-dim)" stroke-width="2" opacity="0.5"/>`;
+    }
+  }
+  let points = '';
+  const canAct = !s.winner && !iAmSpectator && curPid===myId;
+  for(let i=0;i<24;i++){
+    const [x,y] = MUEHLE_COORDS[i];
+    const cx = x*SCALE+PAD, cy = y*SCALE+PAD;
+    const val = s.board[i];
+    const isSelected = s.selected===i;
+    let fill = 'var(--bg)';
+    let stroke = 'var(--chalk-dim)';
+    if(val) fill = (val===room.activePlayers[0]) ? '#2c2c2c' : '#f3ead9';
+    if(isSelected) stroke = 'var(--yellow)';
+    points += `<circle data-idx="${i}" cx="${cx}" cy="${cy}" r="12" fill="${fill}" stroke="${stroke}" stroke-width="${isSelected?4:2}" style="cursor:${canAct?'pointer':'default'};"/>`;
+  }
+
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:14px;">⚪ Mühle</h2>
+    <p class="center small-note" style="margin-top:-6px;">⚫ ${esc(nameOf(room.activePlayers[0]))} vs ⚪ ${esc(nameOf(room.activePlayers[1]))}</p>
+    ${status}
+    <div class="center" style="margin-bottom:10px;">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="max-width:100%;">${lines}${points}</svg>
+    </div>
+    ${s.phase==='placing' ? `<p class="small-note">Noch zu setzen: ${esc(nameOf(room.activePlayers[0]))} ${s.toPlace[room.activePlayers[0]]||0} · ${esc(nameOf(room.activePlayers[1]))} ${s.toPlace[room.activePlayers[1]]||0}</p>` : `<p class="small-note">Zugphase – eigenen Stein antippen, dann freien Nachbarpunkt.</p>`}
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+  if(canAct){
+    app.querySelectorAll('circle[data-idx]').forEach(el=> el.addEventListener('click', ()=> muehleClick(parseInt(el.dataset.idx))));
+  }
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+// ---------- Tetris (solo, fully local, no network) ----------
+const T_SHAPES = {
+  I: [ [[0,1],[1,1],[2,1],[3,1]], [[2,0],[2,1],[2,2],[2,3]], [[0,2],[1,2],[2,2],[3,2]], [[1,0],[1,1],[1,2],[1,3]] ],
+  O: [ [[1,0],[2,0],[1,1],[2,1]], [[1,0],[2,0],[1,1],[2,1]], [[1,0],[2,0],[1,1],[2,1]], [[1,0],[2,0],[1,1],[2,1]] ],
+  T: [ [[1,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[2,1],[1,2]], [[0,1],[1,1],[2,1],[1,2]], [[1,0],[0,1],[1,1],[1,2]] ],
+  S: [ [[1,0],[2,0],[0,1],[1,1]], [[1,0],[1,1],[2,1],[2,2]], [[1,0],[2,0],[0,1],[1,1]], [[1,0],[1,1],[2,1],[2,2]] ],
+  Z: [ [[0,0],[1,0],[1,1],[2,1]], [[2,0],[1,1],[2,1],[1,2]], [[0,0],[1,0],[1,1],[2,1]], [[2,0],[1,1],[2,1],[1,2]] ],
+  J: [ [[0,0],[0,1],[1,1],[2,1]], [[1,0],[2,0],[1,1],[1,2]], [[0,1],[1,1],[2,1],[2,2]], [[1,0],[1,1],[0,2],[1,2]] ],
+  L: [ [[2,0],[0,1],[1,1],[2,1]], [[1,0],[1,1],[1,2],[2,2]], [[0,1],[1,1],[2,1],[0,2]], [[0,0],[1,0],[1,1],[1,2]] ],
+};
+const T_COLS=10, T_ROWS=20, T_TYPES=Object.keys(T_SHAPES);
+let tetris = null;
+let tetrisTimer = null;
+
+function tEmptyBoard(){ return Array.from({length:T_ROWS}, ()=>Array(T_COLS).fill('')); }
+function tRandType(){ return T_TYPES[Math.floor(Math.random()*T_TYPES.length)]; }
+function tCells(type, rot, px, py){ return T_SHAPES[type][rot].map(([dx,dy])=>[px+dx, py+dy]); }
+function tCollides(board, type, rot, px, py){
+  return tCells(type,rot,px,py).some(([x,y])=>{
+    if(x<0||x>=T_COLS||y>=T_ROWS) return true;
+    if(y<0) return false;
+    return board[y][x]!=='';
+  });
+}
+function tSpawn(){
+  const type = tetris.next || tRandType();
+  tetris.next = tRandType();
+  tetris.type = type; tetris.rot = 0; tetris.px = 3; tetris.py = -1;
+  if(tCollides(tetris.board, type, 0, 3, -1) && tCollides(tetris.board, type, 0, 3, 0)){
+    tetris.gameOver = true;
+    if(tetrisTimer){ clearInterval(tetrisTimer); tetrisTimer=null; }
+  }
+}
+function tetrisStart(){
+  tetris = { board: tEmptyBoard(), type:'', rot:0, px:3, py:-1, next: tRandType(), score:0, lines:0, level:1, gameOver:false, paused:false };
+  tSpawn();
+  local.screen = 'tetris';
+  if(tetrisTimer) clearInterval(tetrisTimer);
+  tetrisTimer = setInterval(tetrisTick, tetrisSpeed());
+  render();
+}
+function tetrisSpeed(){ return Math.max(120, 900 - (tetris.level-1)*70); }
+function tetrisRestartSpeed(){ if(tetrisTimer) clearInterval(tetrisTimer); tetrisTimer = setInterval(tetrisTick, tetrisSpeed()); }
+function tetrisTick(){
+  if(!tetris || tetris.gameOver || tetris.paused) return;
+  tetrisSoftDropInternal();
+}
+function tetrisLockAndClear(){
+  tCells(tetris.type, tetris.rot, tetris.px, tetris.py).forEach(([x,y])=>{ if(y>=0) tetris.board[y][x]=tetris.type; });
+  let cleared=0;
+  for(let y=T_ROWS-1;y>=0;y--){
+    if(tetris.board[y].every(c=>c!=='')){
+      tetris.board.splice(y,1);
+      tetris.board.unshift(Array(T_COLS).fill(''));
+      cleared++; y++;
+    }
+  }
+  if(cleared>0){
+    const points = [0,100,300,500,800][cleared] || 800;
+    tetris.score += points * tetris.level;
+    tetris.lines += cleared;
+    const newLevel = Math.floor(tetris.lines/10)+1;
+    if(newLevel !== tetris.level){ tetris.level = newLevel; tetrisRestartSpeed(); }
+  }
+  tSpawn();
+}
+function tetrisSoftDropInternal(){
+  if(!tCollides(tetris.board, tetris.type, tetris.rot, tetris.px, tetris.py+1)){
+    tetris.py += 1;
+  } else {
+    tetrisLockAndClear();
+  }
+  render();
+}
+function tetrisMove(dx){
+  if(!tetris || tetris.gameOver) return;
+  if(!tCollides(tetris.board, tetris.type, tetris.rot, tetris.px+dx, tetris.py)) tetris.px += dx;
+  render();
+}
+function tetrisRotate(){
+  if(!tetris || tetris.gameOver) return;
+  const newRot = (tetris.rot+1)%4;
+  if(!tCollides(tetris.board, tetris.type, newRot, tetris.px, tetris.py)) tetris.rot = newRot;
+  render();
+}
+function tetrisSoftDrop(){ if(!tetris || tetris.gameOver) return; tetrisSoftDropInternal(); }
+function tetrisHardDrop(){
+  if(!tetris || tetris.gameOver) return;
+  while(!tCollides(tetris.board, tetris.type, tetris.rot, tetris.px, tetris.py+1)) tetris.py += 1;
+  tetrisLockAndClear();
+  render();
+}
+function tetrisExit(){
+  if(tetrisTimer){ clearInterval(tetrisTimer); tetrisTimer=null; }
+  tetris = null;
+  local.screen = 'landing';
+  render();
+}
+function renderTetris(){
+  const displayBoard = tetris.board.map(row=>row.slice());
+  if(!tetris.gameOver){
+    tCells(tetris.type, tetris.rot, tetris.px, tetris.py).forEach(([x,y])=>{
+      if(y>=0 && y<T_ROWS && x>=0 && x<T_COLS) displayBoard[y][x] = tetris.type;
+    });
+  }
+  const cellsHtml = displayBoard.map(row => row.map(c=>`<div class="tetris-cell ${c}"></div>`).join('')).join('');
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:10px;">🧩 Tetris</h2>
+    <div class="tetris-stats">
+      <span>Punkte: <b>${tetris.score}</b></span>
+      <span>Level: <b>${tetris.level}</b></span>
+      <span>Reihen: <b>${tetris.lines}</b></span>
+    </div>
+    ${tetris.gameOver ? statusHtml('💥 Game Over!', true) : ''}
+    <div class="tetris-board">${cellsHtml}</div>
+    <div class="tetris-controls">
+      <button class="secondary" id="btnTLeft">◀</button>
+      <button class="secondary" id="btnTRotate">⟳</button>
+      <button class="secondary" id="btnTRight">▶</button>
+      <button class="secondary" id="btnTDown">▼</button>
+    </div>
+    <button class="primary" id="btnTHard" style="max-width:320px; margin:12px auto 0; display:block;">⏬ Hart fallen lassen</button>
+    ${tetris.gameOver ? `<button class="primary" id="btnTRestart" style="max-width:320px; margin:10px auto 0; display:block;">🔁 Neustart</button>` : ''}
+    <div class="foot-nav center"><button class="secondary" id="btnTExit" style="max-width:320px; margin:0 auto;">Zurück zur Übersicht</button></div>
+  `;
+  if(!tetris.gameOver){
+    document.getElementById('btnTLeft').addEventListener('click', ()=>tetrisMove(-1));
+    document.getElementById('btnTRight').addEventListener('click', ()=>tetrisMove(1));
+    document.getElementById('btnTRotate').addEventListener('click', tetrisRotate);
+    document.getElementById('btnTDown').addEventListener('click', tetrisSoftDrop);
+    document.getElementById('btnTHard').addEventListener('click', tetrisHardDrop);
+  } else {
+    const br = document.getElementById('btnTRestart'); if(br) br.addEventListener('click', tetrisStart);
+  }
+  document.getElementById('btnTExit').addEventListener('click', tetrisExit);
+}
+
+// ---------- Mahjong Solitaire (solo, fully local) ----------
+const MJ_TILES = [
+  ...[1,2,3,4,5,6,7,8,9].map(n=>({glyph:String.fromCodePoint(0x1F006+n), code:'W'+n})),
+  ...[1,2,3,4,5,6,7,8,9].map(n=>({glyph:String.fromCodePoint(0x1F00F+n), code:'B'+n})),
+  ...[1,2,3,4,5,6,7,8,9].map(n=>({glyph:String.fromCodePoint(0x1F018+n), code:'C'+n})),
+  {glyph:String.fromCodePoint(0x1F004), code:'DR'},
+  {glyph:String.fromCodePoint(0x1F005), code:'DG'},
+  {glyph:String.fromCodePoint(0x1F006), code:'DW'},
+];
+const MJ_TILE_W=32, MJ_TILE_H=42, MJ_SHIFT=6;
+let mahjong = null;
+
+function mjSetup(){
+  const positions = [];
+  for(let y=0;y<5;y++) for(let x=0;x<8;x++) positions.push({x,y,layer:0});
+  for(let y=1;y<4;y++) for(let x=1;x<7;x++) positions.push({x,y,layer:1});
+  positions.push({x:3,y:2,layer:2}, {x:4,y:2,layer:2});
+  let pool = [];
+  for(let i=0;i<30;i++){ pool.push(i,i); }
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=pool[i]; pool[i]=pool[j]; pool[j]=t; }
+  return positions.map((p,i)=>({ id:i, x:p.x, y:p.y, layer:p.layer, typeIdx:pool[i], removed:false }));
+}
+function mjIsFree(tiles, t){
+  const coveredAbove = tiles.some(o=>!o.removed && o.layer>t.layer && o.x===t.x && o.y===t.y);
+  if(coveredAbove) return false;
+  const leftBlocked = tiles.some(o=>!o.removed && o.layer===t.layer && o.x===t.x-1 && o.y===t.y);
+  const rightBlocked = tiles.some(o=>!o.removed && o.layer===t.layer && o.x===t.x+1 && o.y===t.y);
+  return !leftBlocked || !rightBlocked;
+}
+function mjFreeTiles(tiles){ return tiles.filter(t=>!t.removed && mjIsFree(tiles,t)); }
+function mjHasMoves(tiles){
+  const free = mjFreeTiles(tiles);
+  for(let i=0;i<free.length;i++) for(let j=i+1;j<free.length;j++) if(free[i].typeIdx===free[j].typeIdx) return true;
+  return false;
+}
+function mjShuffleRemaining(){
+  const remaining = mahjong.tiles.filter(t=>!t.removed);
+  const types = remaining.map(t=>t.typeIdx);
+  for(let i=types.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const tmp=types[i]; types[i]=types[j]; types[j]=tmp; }
+  remaining.forEach((t,i)=> t.typeIdx=types[i]);
+}
+function mahjongStart(){
+  mahjong = { tiles: mjSetup(), selected:-1, won:false, moves:0 };
+  local.screen='mahjong';
+  render();
+}
+function mahjongClick(id){
+  const t = mahjong.tiles.find(x=>x.id===id);
+  if(!t || t.removed || !mjIsFree(mahjong.tiles, t)) return;
+  if(mahjong.selected===-1){ mahjong.selected=id; render(); return; }
+  if(mahjong.selected===id){ mahjong.selected=-1; render(); return; }
+  const s = mahjong.tiles.find(x=>x.id===mahjong.selected);
+  if(s.typeIdx===t.typeIdx){
+    s.removed=true; t.removed=true; mahjong.selected=-1; mahjong.moves++;
+    if(mahjong.tiles.every(x=>x.removed)) mahjong.won=true;
+  } else {
+    mahjong.selected = id;
+  }
+  render();
+}
+function mahjongReshuffle(){ mjShuffleRemaining(); mahjong.selected=-1; render(); }
+function mahjongExit(){ mahjong=null; local.screen='landing'; render(); }
+function renderMahjong(){
+  const remaining = mahjong.tiles.filter(t=>!t.removed);
+  const stuck = !mahjong.won && !mjHasMoves(mahjong.tiles) && remaining.length>0;
+  const boardW = 8*MJ_TILE_W + 2*MJ_SHIFT, boardH = 5*MJ_TILE_H + 2*MJ_SHIFT;
+  const tilesHtml = mahjong.tiles.filter(t=>!t.removed).sort((a,b)=> a.layer-b.layer || a.y-b.y || a.x-b.x).map(t=>{
+    const free = mjIsFree(mahjong.tiles, t);
+    const left = t.x*MJ_TILE_W + t.layer*MJ_SHIFT;
+    const top = t.y*MJ_TILE_H - t.layer*MJ_SHIFT;
+    const z = t.layer*1000 + t.y*10 + t.x;
+    const info = MJ_TILES[t.typeIdx];
+    const cls = ['mj-tile']; if(!free) cls.push('mj-blocked'); if(mahjong.selected===t.id) cls.push('mj-selected');
+    return `<div class="${cls.join(' ')}" style="left:${left}px; top:${top}px; z-index:${z};" data-id="${t.id}">
+      <div>${info.glyph}</div><div class="mj-code">${info.code}</div>
+    </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:6px;">🀄 Mahjong Solitaire</h2>
+    <p class="center small-note" style="margin-top:0;">Noch ${remaining.length} von 60 Steinen &middot; ${mahjong.moves} Paare entfernt</p>
+    ${mahjong.won ? statusHtml('🎉 Geschafft – alle Paare gefunden!', true) : ''}
+    ${stuck ? statusHtml('Keine Züge mehr möglich – mische die restlichen Steine neu.') : ''}
+    <div class="mj-board" style="width:${boardW}px; height:${boardH}px;">${tilesHtml}</div>
+    ${stuck ? `<button class="primary" id="btnMjShuffle" style="max-width:260px; margin:14px auto 0; display:block;">🔀 Restliche Steine neu mischen</button>` : ''}
+    ${mahjong.won ? `<button class="primary" id="btnMjRestart" style="max-width:260px; margin:14px auto 0; display:block;">🔁 Neues Spiel</button>` : ''}
+    <div class="foot-nav center"><button class="secondary" id="btnMjExit" style="max-width:260px; margin:12px auto 0;">Zurück zur Übersicht</button></div>
+  `;
+  if(!mahjong.won){
+    app.querySelectorAll('.mj-tile:not(.mj-blocked)').forEach(el=> el.addEventListener('click', ()=> mahjongClick(parseInt(el.dataset.id))));
+  }
+  const bs = document.getElementById('btnMjShuffle'); if(bs) bs.addEventListener('click', mahjongReshuffle);
+  const br = document.getElementById('btnMjRestart'); if(br) br.addEventListener('click', mahjongStart);
+  document.getElementById('btnMjExit').addEventListener('click', mahjongExit);
+}
+
+// ---------- Skip-Bo ----------
+function skipboFreshDeck(){
+  const deck=[];
+  for(let v=1;v<=12;v++){ for(let i=0;i<8;i++) deck.push(String(v)); }
+  for(let i=0;i<12;i++) deck.push('W');
+  for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=deck[i]; deck[i]=deck[j]; deck[j]=t; }
+  return deck;
+}
+function skipboDrawCard(s){
+  if(!s.drawPile || s.drawPile.length===0){ s.drawPile = skipboFreshDeck(); }
+  return s.drawPile.pop();
+}
+function skipboRefillHand(s, pid){
+  const p = s.players[pid];
+  while((p.hand||[]).length < 5){ p.hand.push(skipboDrawCard(s)); }
+}
+function skipboCanPlay(card, needed){ return card==='W' || parseInt(card,10)===needed; }
+
+async function skipboPlay(source, sourceIdx, pileIdx){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = s.order[s.turn];
+  if(cur!==myId) return;
+  const p = s.players[cur];
+  let card;
+  if(source==='hand'){ card = (p.hand||[])[sourceIdx]; }
+  else if(source==='stock'){ const st=p.stock||[]; card = st[st.length-1]; }
+  else if(source.startsWith('d')){ const di=parseInt(source[1]); card = (p.discards||['','','',''])[di]; }
+  if(!card) return;
+  const needed = s.buildPiles[pileIdx];
+  if(!skipboCanPlay(card, needed)) return;
+
+  if(source==='hand'){ p.hand.splice(sourceIdx,1); }
+  else if(source==='stock'){ p.stock.pop(); }
+  else if(source.startsWith('d')){ const di=parseInt(source[1]); p.discards[di]=''; }
+
+  s.buildPiles[pileIdx] = needed + 1;
+  if(s.buildPiles[pileIdx] > 12) s.buildPiles[pileIdx] = 1;
+
+  if(source==='stock' && (p.stock||[]).length===0){ s.winner = cur; }
+  await saveRoom(r); room=r; local.sbSelect=null; render();
+}
+async function skipboDiscard(handIdx, pileIdx){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = s.order[s.turn];
+  if(cur!==myId) return;
+  const p = s.players[cur];
+  const card = (p.hand||[])[handIdx];
+  if(!card) return;
+  p.hand.splice(handIdx,1);
+  p.discards[pileIdx] = card;
+  s.turn = (s.turn+1) % s.order.length;
+  skipboRefillHand(s, s.order[s.turn]);
+  local.sbSelect = null;
+  await saveRoom(r); room=r; render();
+}
+async function skipboPassIfHandEmpty(){
+  const r = await refreshRoom();
+  if(!r || !r.state) { render(); return; }
+  const s = r.state;
+  if(s.winner) return;
+  const cur = s.order[s.turn];
+  if(cur!==myId) return;
+  const p = s.players[cur];
+  if((p.hand||[]).length>0) return;
+  s.turn = (s.turn+1) % s.order.length;
+  skipboRefillHand(s, s.order[s.turn]);
+  local.sbSelect = null;
+  await saveRoom(r); room=r; render();
+}
+function renderSkipbo(){
+  const s = room.state;
+  const cur = s.order[s.turn];
+  const myTurn = cur===myId && !s.winner;
+  const me = s.players[myId] || {stock:[],hand:[],discards:['','','','']};
+
+  let status = s.winner ? statusHtml(`🏆 ${esc(nameOf(s.winner))} gewinnt!`, true)
+    : statusHtml(cur===myId ? 'Du bist am Zug!' : `${esc(nameOf(cur))} ist am Zug…`);
+
+  const buildHtml = s.buildPiles.map((needed,i)=>{
+    const label = needed>1 ? String(needed-1) : '–';
+    return `<div class="sb-pile"><div class="sb-card sb-build" data-pile="${i}">${label}</div><div class="sb-pile-label">Ablage ${i+1}</div></div>`;
+  }).join('');
+
+  const oppHtml = s.order.filter(p=>p!==myId).map(pid=>{
+    const op = s.players[pid] || {stock:[],hand:[]};
+    return `<span class="sb-opp"><b>${esc(nameOf(pid))}</b>: 📚${(op.stock||[]).length} 🖐${(op.hand||[]).length}</span>`;
+  }).join('');
+
+  const myStock = me.stock||[];
+  const myStockTop = myStock.length ? myStock[myStock.length-1] : '–';
+  const sel = local.sbSelect;
+  const stockSelected = sel && sel.src==='stock';
+  const stockHtml = `<div class="sb-card ${myStock.length?'':'sb-empty'} ${stockSelected?'sb-selected':''}" data-src="stock">${myStockTop}</div>`;
+
+  const myDiscards = me.discards || ['','','',''];
+  const discHtml = myDiscards.map((c,i)=>{
+    const selected = sel && sel.src==='d'+i;
+    return `<div class="sb-card ${c?'':'sb-empty'} ${selected?'sb-selected':''}" data-discidx="${i}">${c||'–'}</div>`;
+  }).join('');
+
+  const myHand = me.hand || [];
+  const handHtml = myHand.map((c,i)=>{
+    const selected = sel && sel.src==='hand' && sel.idx===i;
+    return `<div class="sb-card ${selected?'sb-selected':''}" data-src="hand" data-idx="${i}">${c}</div>`;
+  }).join('') || '<span class="small-note">Hand leer</span>';
+
+  app.innerHTML = `
+    <h2 class="center" style="margin-bottom:10px;">🃏 Skip-Bo</h2>
+    ${status}
+    <div class="sb-opponents">${oppHtml}</div>
+    <div class="sb-build-row">${buildHtml}</div>
+    <p class="small-note">Karte antippen, dann Ziel-Ablage antippen. Aus der Hand direkt auf eine eigene Ablage tippen beendet den Zug.</p>
+    <div class="sb-mine">
+      <div class="sb-row"><span class="sb-row-label">Dein Stapel</span>${stockHtml}<span class="small-note" style="margin:0;">${myStock.length} übrig</span></div>
+      <div class="sb-row"><span class="sb-row-label">Deine Ablagen</span>${discHtml}</div>
+      <div class="sb-row"><span class="sb-row-label">Deine Hand</span>${handHtml}</div>
+    </div>
+    ${myTurn && myHand.length===0 ? `<button class="primary" id="btnSbPass" style="max-width:220px; margin:14px auto 0; display:block;">Zug beenden</button>` : ''}
+    <div class="foot-nav">${isHost()?'<button class="secondary" id="btnBack">Zurück zur Lobby</button>':''}</div>
+  `;
+
+  if(myTurn){
+    app.querySelectorAll('[data-src]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const src = el.dataset.src;
+        const idx = el.dataset.idx!==undefined ? parseInt(el.dataset.idx) : undefined;
+        if(local.sbSelect && local.sbSelect.src===src && local.sbSelect.idx===idx){ local.sbSelect=null; }
+        else { local.sbSelect = {src, idx}; }
+        render();
+      });
+    });
+    app.querySelectorAll('[data-pile]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        if(!local.sbSelect) return;
+        skipboPlay(local.sbSelect.src, local.sbSelect.idx, parseInt(el.dataset.pile));
+      });
+    });
+    app.querySelectorAll('[data-discidx]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const di = parseInt(el.dataset.discidx);
+        if(local.sbSelect && local.sbSelect.src==='hand'){
+          skipboDiscard(local.sbSelect.idx, di);
+        } else {
+          const src = 'd'+di;
+          if(local.sbSelect && local.sbSelect.src===src){ local.sbSelect=null; }
+          else if((myDiscards[di]||'')!==''){ local.sbSelect = {src}; }
+          render();
+        }
+      });
+    });
+    const bp = document.getElementById('btnSbPass'); if(bp) bp.addEventListener('click', skipboPassIfHandEmpty);
+  }
+  const bb = document.getElementById('btnBack'); if(bb) bb.addEventListener('click', backToLobby);
+}
+
+render();
+</script>
+</body>
+</html>
